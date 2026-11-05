@@ -3,6 +3,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { buildHistory } from './history.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const API = 'https://m.stock.naver.com/api';
@@ -60,8 +61,10 @@ async function main() {
   const indName = Object.fromEntries(industries.map(g => [g.no, g.name]));
 
   const cands = [];
+  const lists = {};
   for (const m of ['KOSPI', 'KOSDAQ']) {
     const list = await listMarket(m);
+    lists[m] = list;
     console.log(m, 'listed', list.length);
     if (list.length < 500) throw new Error(`${m} 종목 목록이 너무 적음(${list.length}) - API 응답 이상`);
     for (const s of list) {
@@ -74,26 +77,34 @@ async function main() {
   }
   console.log('candidates', cands.length);
 
+  const detailCache = {};
+  async function details(code) {
+    if (detailCache[code]) return detailCache[code];
+    const s = {};
+    const [it, fa] = await Promise.all([
+      get(`${API}/stock/${code}/integration`),
+      get(`${API}/stock/${code}/finance/annual`),
+    ]);
+    const ti = Object.fromEntries((it?.totalInfos || []).map(x => [x.code, x.value]));
+    s.sector = indName[it?.industryCode] || '기타';
+    s.pbr = ti.pbr && ti.pbr !== 'N/A' ? parseFloat(ti.pbr.replace(/,/g, '')) : null;
+    s.hi = num(ti.highPriceOf52Weeks); s.lo = num(ti.lowPriceOf52Weeks);
+    s.fin = {}; s.years = [];
+    const fi = fa?.financeInfo;
+    if (fi) {
+      s.years = fi.trTitleList.filter(t => t.isConsensus === 'N').map(t => t.key);
+      for (const r of fi.rowList)
+        if (['매출액', '영업이익', '당기순이익', '부채비율'].includes(r.title))
+          s.fin[r.title] = s.years.map(k => num(r.columns[k]?.value));
+    }
+    s.big = bigOf(s.sector);
+    return (detailCache[code] = s);
+  }
   let i = 0;
   await Promise.all(Array.from({ length: 6 }, async () => {
     while (i < cands.length) {
       const s = cands[i++];
-      const [it, fa] = await Promise.all([
-        get(`${API}/stock/${s.code}/integration`),
-        get(`${API}/stock/${s.code}/finance/annual`),
-      ]);
-      const ti = Object.fromEntries((it?.totalInfos || []).map(x => [x.code, x.value]));
-      s.sector = indName[it?.industryCode] || '기타';
-      s.pbr = ti.pbr && ti.pbr !== 'N/A' ? parseFloat(ti.pbr.replace(/,/g, '')) : null;
-      s.hi = num(ti.highPriceOf52Weeks); s.lo = num(ti.lowPriceOf52Weeks);
-      s.fin = {}; s.years = [];
-      const fi = fa?.financeInfo;
-      if (fi) {
-        s.years = fi.trTitleList.filter(t => t.isConsensus === 'N').map(t => t.key);
-        for (const r of fi.rowList)
-          if (['매출액', '영업이익', '당기순이익', '부채비율'].includes(r.title))
-            s.fin[r.title] = s.years.map(k => num(r.columns[k]?.value));
-      }
+      Object.assign(s, await details(s.code));
     }
   }));
 
@@ -115,6 +126,21 @@ async function main() {
   fs.writeFileSync(path.join(ROOT, 'public', 'index.html'), tpl.replace('__DATA__', () => JSON.stringify(data)));
   fs.writeFileSync(path.join(ROOT, 'public', 'data.json'), JSON.stringify(data));
   console.log('wrote public/index.html,', rows.length, 'rows');
+
+  // 과거 회복 사례. 실패하면 저장소에 커밋된 스냅샷을 쓴다.
+  const histOut = path.join(ROOT, 'public', 'history.json');
+  const histSnap = path.join(ROOT, 'data', 'history.json');
+  try {
+    const hist = await buildHistory({ root: ROOT, lists, details });
+    if (hist.cases.length < 10) throw new Error('회복 사례가 너무 적음: ' + hist.cases.length);
+    const json = JSON.stringify(hist);
+    fs.writeFileSync(histOut, json);
+    fs.mkdirSync(path.dirname(histSnap), { recursive: true });
+    fs.writeFileSync(histSnap, json);
+  } catch (e) {
+    console.error('history 수집 실패, 스냅샷 사용:', e.message);
+    if (fs.existsSync(histSnap)) fs.copyFileSync(histSnap, histOut);
+  }
 }
 
 main().catch(e => { console.error(e); process.exit(1); });

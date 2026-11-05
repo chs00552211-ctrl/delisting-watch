@@ -94,13 +94,58 @@ footer{color:var(--muted);font-size:12px;padding-block:0 40px}
 footer ul{margin:6px 0 0;padding-left:18px}
 @media (max-width:600px){h1{font-size:21px}.seg button{padding:7px 9px}.seg.big button{padding:8px 14px}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.views{display:flex;gap:4px;margin-top:14px;border-bottom:1px solid var(--line)}
+.views a{font-size:15px;font-weight:600;color:var(--muted);text-decoration:none;padding:9px 14px;border-bottom:2px solid transparent;margin-bottom:-1px}
+.views a[aria-current="page"]{color:var(--accent);border-bottom-color:var(--accent)}
+.views a .cnt{font-family:var(--f-num);font-size:12px;font-weight:400;margin-left:5px}
+.only-now,.only-rec{display:contents}
+body[data-view="rec"] .only-now{display:none}
+body[data-view="now"] .only-rec{display:none}
+.cards{display:flex;flex-direction:column}
+.card{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:14px 20px;padding:16px;border-top:1px solid var(--line)}
+.card:first-child{border-top:0}
+@media (max-width:860px){.card{grid-template-columns:minmax(0,1fr)}}
+.card h3{margin:0;font-size:16px}
+.card h3 a{color:var(--ink);text-decoration:none}
+.card h3 a:hover{color:var(--accent);text-decoration:underline}
+.card .sub{font-size:12px;color:var(--muted)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px 12px;margin:10px 0 0}
+.facts div{min-width:0}
+.facts dt{font-size:11px;color:var(--muted);letter-spacing:.02em}
+.facts dd{margin:0;font-family:var(--f-num);font-variant-numeric:tabular-nums;font-size:13.5px}
+.tl{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column;gap:3px;font-size:12.5px}
+.tl li{display:flex;gap:8px;align-items:baseline}
+.tl .d{font-family:var(--f-num);color:var(--muted);flex:none}
+.tl i{display:inline-block;width:8px;height:8px;border-radius:2px;flex:none;transform:translateY(-1px)}
+.tl a{color:inherit}
+.k-W{background:var(--warn)}.k-D{background:var(--crit)}.k-R{background:var(--accent)}.k-E{background:var(--bar)}
+.chartbox{position:relative;min-width:0}
+.chartbox svg{display:block;width:100%;height:auto;touch-action:pan-y}
+.chartbox .tip{position:absolute;top:4px;pointer-events:none;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:4px 7px;font-size:11.5px;font-family:var(--f-num);white-space:nowrap;box-shadow:0 2px 8px -4px rgba(0,0,0,.4)}
+.legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11.5px;color:var(--muted);margin-top:4px}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend b{display:inline-block;width:14px;height:0;border-top:2px solid var(--ink)}
+.legend b.th{border-top:2px dashed var(--crit)}
+.legend b.sh{height:9px;border:0;background:var(--crit-soft)}
+.rel{margin:12px 0 0;font-size:12.5px}
+.rel b{display:block;font-size:12px;color:var(--muted);font-weight:500}
+.rel ul{margin:4px 0 0;padding-left:16px}
+.rel a{color:var(--ink)}
+.rel .none{color:var(--muted)}
+.pill.ok{background:var(--accent-soft);color:var(--accent)}
+.note{font-size:12.5px;color:var(--muted);margin:0;max-width:90ch}
 </style>
 </head>
-<body>
+<body data-view="now">
 
 <header class="top wrap">
   <h1>시총 미달 종목판</h1>
-  <p class="lede">상장폐지 <b>매출액 기준은 넘지만 시가총액 기준에는 못 미치는</b> 코스피·코스닥 종목을 섹터별로 모았습니다. 기준 적용 연도를 바꾸면 2025년 개편안의 단계별 기준으로 다시 걸러집니다. 평일 장 마감 후 매일 자동 갱신됩니다. <span class="mono" id="asof"></span></p>
+  <p class="lede only-now">상장폐지 <b>매출액 기준은 넘지만 시가총액 기준에는 못 미치는</b> 코스피·코스닥 종목을 섹터별로 모았습니다. 기준 적용 시점을 바꾸면 그때의 기준으로 다시 걸러집니다. 평일 장 마감 후 매일 자동 갱신됩니다. <span class="mono asof"></span></p>
+  <p class="lede only-rec">2024년 이후 <b>매출액 기준은 넘었지만 시가총액이 기준 아래로 떨어졌다가, 상장폐지 없이 다시 올라온</b> 종목입니다. 그때의 주가 흐름과 회복 무렵 나온 주요 공시를 함께 보여줍니다. <span class="mono hasof"></span></p>
+  <nav class="views" aria-label="보기">
+    <a href="#now" data-view="now">현재 시총 미달<span class="cnt" id="vc-now"></span></a>
+    <a href="#recovered" data-view="rec">회복 사례<span class="cnt" id="vc-rec"></span></a>
+  </nav>
 </header>
 
 <div class="deck">
@@ -110,11 +155,19 @@ footer ul{margin:6px 0 0;padding-left:18px}
         <button id="m0" data-m="0" aria-pressed="true">코스피<span class="cnt"></span></button>
         <button id="m1" data-m="1" aria-pressed="false">코스닥<span class="cnt"></span></button>
       </div>
-      <span class="lbl">기준 적용</span>
-      <div class="seg" role="group" aria-label="기준 적용 연도" id="stages"></div>
+      <span class="only-now"><span class="lbl">기준 적용</span>
+      <div class="seg" role="group" aria-label="기준 적용 시점" id="stages"></div></span>
+      <span class="only-rec"><span class="lbl">구분</span>
+      <div class="seg" role="group" aria-label="회복 구분" id="kinds">
+        <button data-k2="all" aria-pressed="true">전체</button>
+        <button data-k2="release" aria-pressed="false">관리종목 해제</button>
+        <button data-k2="warn" aria-pressed="false">경고 후 회복</button>
+        <button data-k2="est" aria-pressed="false">추정</button>
+      </div></span>
     </div>
     <div class="row">
       <input type="search" id="q" placeholder="종목명, 코드, 업종 검색">
+      <span class="only-now">
       <select id="sort" aria-label="정렬">
         <option value="gap">기준까지 필요한 상승률 큰 순</option>
         <option value="mc">시총 작은 순</option>
@@ -125,6 +178,16 @@ footer ul{margin:6px 0 0;padding-left:18px}
       </select>
       <label class="chk"><input type="checkbox" id="xsp" checked> 스팩 제외</label>
       <label class="chk"><input type="checkbox" id="xst"> 거래정지 제외</label>
+      </span>
+      <span class="only-rec">
+      <select id="hsort" aria-label="정렬">
+        <option value="rec">최근 회복 순</option>
+        <option value="move">회복 후 10거래일 상승률 순</option>
+        <option value="mc">현재 시총 작은 순</option>
+        <option value="rv">당시 매출 큰 순</option>
+      </select>
+      <label class="chk"><input type="checkbox" id="xdes"> 이후 다시 지정된 종목 제외</label>
+      </span>
     </div>
     <div class="rule" id="rule"></div>
     <div class="chips" id="chips"></div>
@@ -136,12 +199,21 @@ footer ul{margin:6px 0 0;padding-left:18px}
   <main id="list"></main>
   <footer>
     <b>데이터와 읽는 법</b>
-    <ul>
-      <li>시세·시가총액·재무: 네이버 증권 공개 데이터, <span id="asof2"></span> 기준 스냅샷입니다. 실시간이 아닙니다.</li>
-      <li>매출액은 가장 최근 확정 연간 실적(대부분 연결 기준)입니다. 거래소 규정은 사업보고서상 매출액(코스피는 별도 재무제표 기준 등 세부 차이)을 쓰므로 실제 판정과 다를 수 있습니다.</li>
-      <li>실제 규정은 시총 미달이 <b>30거래일 연속</b>일 때 관리종목으로 지정하고, 이후 90일 안에 회복하지 못하면 상장폐지합니다. 이 표는 하루치 시총만 비교합니다.</li>
-      <li>"현행 미달" 표시는 지금 시행 중인 기준에도 시총이 못 미친다는 뜻입니다. 우선주, ETF, 펀드형 종목은 뺐습니다.</li>
+    <ul class="only-now">
+      <li>시세·시가총액·재무: 네이버 증권 공개 데이터, <span class="asof2"></span> 기준 스냅샷입니다. 실시간이 아닙니다.</li>
+      <li>시총 기준은 2026년 7월부터 코스피 300억, 코스닥 200억이고, 2027년 1월부터 코스피 500억, 코스닥 300억입니다. 매출 기준은 2027년부터 단계적으로 오릅니다.</li>
+      <li>매출액은 가장 최근 확정 연간 실적(대부분 연결 기준)입니다. 거래소 규정상 매출액과 세부 기준이 달라 실제 판정과 다를 수 있습니다.</li>
+      <li>실제 규정은 시총 미달이 <b>30거래일 연속</b>일 때 관리종목으로 지정하고, 지정 후 90거래일 동안 기준 이상인 상태가 45거래일 이어지지 못하면 상장폐지합니다. 이 표는 하루치 시총만 비교합니다.</li>
+      <li>"현행 미달"은 지금 시행 중인 기준에도 시총이 못 미친다는 뜻입니다. 우선주, ETF, 펀드형 종목은 뺐습니다.</li>
       <li>투자 판단 자료가 아니라 기준 대비 위치를 훑어보는 용도입니다.</li>
+    </ul>
+    <ul class="only-rec">
+      <li><b>관리종목 해제</b>: 시총 미달로 관리종목에 지정됐다가 "시가총액 미달 사유 해소"로 해제된 종목 (KIND 거래소 공시).</li>
+      <li><b>경고 후 회복</b>: 코스닥은 시총 미달이 25거래일 이어지면 "관리종목 지정우려" 경고를 냅니다. 경고 뒤 지정 없이 넘어간 종목입니다 (KIND 공시).</li>
+      <li><b>추정</b>: 코스피는 경고 공시가 없어서, 수정주가 × 현재 상장주식수로 과거 시총을 추정해 10~29거래일 기준 아래에 있다가 올라온 구간을 찾았습니다. 그 사이 증자 등으로 주식수가 바뀌었다면 실제와 다를 수 있습니다.</li>
+      <li>2024~2025년은 시총 기준이 코스피 50억, 코스닥 40억이라 해당 사례가 거의 없습니다. 상장폐지된 종목은 뺐습니다.</li>
+      <li>당시 매출은 사례 첫 시점 직전 회계연도 매출이며, 그때 매출 기준(코스피 50억, 코스닥 30억) 이상인 종목만 넣었습니다.</li>
+      <li>차트의 빨간 점선은 시총 기준을 현재 주식수로 나눠 주가로 환산한 선, 붉은 구간은 기준 미달 구간입니다 (공식 사례는 공시 날짜로 계산).</li>
     </ul>
   </footer>
 </div>
@@ -149,38 +221,53 @@ footer ul{margin:6px 0 0;padding-left:18px}
 <script>
 const D=__DATA__;
 const STAGES=[
-  {k:'now',t:'현행',mc:[50,40],rv:[50,30]},
-  {k:'2026',t:'2026',mc:[200,150],rv:[50,30]},
-  {k:'2027',t:'2027',mc:[300,200],rv:[100,50]},
-  {k:'2028',t:'2028',mc:[500,300],rv:[200,75]},
-  {k:'2029',t:'2029 최종',mc:[500,300],rv:[300,100]},
+  {t:'2026 상반기',mc:[200,150],rv:[50,30]},
+  {t:'현행',mc:[300,200],rv:[50,30]},
+  {t:'2027',mc:[500,300],rv:[100,50]},
+  {t:'2028',mc:[500,300],rv:[200,75]},
+  {t:'2029',mc:[500,300],rv:[300,100]},
 ];
+const CUR=1;
 const ORDER=['IT·반도체','자동차·운송','소비재','헬스케어','소재','산업재','미디어·통신','금융·부동산','에너지·유틸리티','기타'];
-const S={m:0,st:1,q:'',sort:'gap',xsp:true,xst:false,sec:'전체'};
-try{Object.assign(S,JSON.parse(localStorage.getItem('dl-state')||'{}'))}catch(e){}
+const S={m:0,st:CUR,q:'',sort:'gap',xsp:true,xst:false,sec:'전체',k2:'all',hsort:'rec',xdes:false};
+try{Object.assign(S,JSON.parse(localStorage.getItem('dl-state-v2')||'{}'))}catch(e){}
+let VIEW=location.hash==='#recovered'?'rec':'now';
+let H=null;
 const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const rows=D.rows.filter(r=>!/클래스/.test(r.n));
 rows.forEach(r=>{let v=null,y=null;for(let i=r.rv.length-1;i>=0;i--)if(r.rv[i]!=null){v=r.rv[i];y=r.y[i];break}r.R=v;r.RY=y;
   const op=r.op.filter(x=>x!=null);r.loss3=op.length>=3&&op.slice(-3).every(x=>x<0);r.ps=v>0?r.mc/v:null;});
-const fmt=(n,d=0)=>n==null?'–':n.toLocaleString('ko-KR',{maximumFractionDigits:d,minimumFractionDigits:d});
+const fmt=(n,d=0)=>n==null||isNaN(n)?'–':n.toLocaleString('ko-KR',{maximumFractionDigits:d,minimumFractionDigits:d});
 const eok=n=>n==null?'–':(Math.abs(n)>=10000?fmt(n/10000,2)+'조':fmt(n)+'억');
-$('asof').textContent=$('asof2').textContent=new Date(D.asOf).toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'})+' 종가';
-$('asof').textContent='('+$('asof').textContent+' 기준)';
-
+const kdate=s=>new Date(s).toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'});
+document.querySelectorAll('.asof').forEach(e=>e.textContent='('+kdate(D.asOf)+' 종가 기준)');
+document.querySelectorAll('.asof2').forEach(e=>e.textContent=kdate(D.asOf)+' 종가');
 $('stages').innerHTML=STAGES.map((s,i)=>`<button id="st${i}" data-i="${i}" aria-pressed="false">${s.t}</button>`).join('');
-function save(){try{localStorage.setItem('dl-state',JSON.stringify(S))}catch(e){}}
+function save(){try{localStorage.setItem('dl-state-v2',JSON.stringify(S))}catch(e){}}
 function base(m){const st=STAGES[S.st];return rows.filter(r=>r.m===m&&r.R!=null&&r.R>=st.rv[m]&&r.mc<st.mc[m]&&!(S.xsp&&r.sp)&&!(S.xst&&r.st))}
 function spark(a){const v=a.filter(x=>x!=null);if(v.length<2)return '';const mx=Math.max(...v),mn=Math.min(0,...v),w=54,h=18;
   const pts=a.map((x,i)=>x==null?null:[i*(w-4)/(a.length-1)+2,h-2-(x-mn)/((mx-mn)||1)*(h-4)]).filter(Boolean);
   const l=pts[pts.length-1];
   return `<svg class="sp" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true"><polyline points="${pts.map(p=>p.join(',')).join(' ')}" fill="none" stroke="var(--muted)" stroke-width="1.3"/><circle cx="${l[0]}" cy="${l[1]}" r="2.2" fill="var(--accent)"/></svg>`}
-function rowHtml(r){const st=STAGES[S.st],lim=st.mc[r.m],cur=STAGES[0].mc[r.m];
+const med=a=>{a=a.filter(x=>x!=null);if(!a.length)return null;const s=[...a].sort((x,y)=>x-y);return s[Math.floor(s.length/2)]};
+const statHtml=arr=>arr.map(([k,v])=>`<div class="stat"><div class="v">${v}</div><div class="k">${k}</div></div>`).join('');
+function chips(list,key){
+  const counts={};list.forEach(r=>counts[r.b]=(counts[r.b]||0)+1);
+  if(S.sec!=='전체'&&!counts[S.sec])S.sec='전체';
+  $('chips').innerHTML=['전체',...ORDER.filter(b=>counts[b])].map(b=>`<button class="chip" data-b="${b}" aria-pressed="${S.sec===b}">${b}<span class="cnt">${b==='전체'?list.length:counts[b]}</span></button>`).join('');
+  return S.sec==='전체'?list:list.filter(r=>r.b===S.sec);
+}
+function searchFilter(list){const q=S.q.trim().toLowerCase();return q?list.filter(r=>(r.n+r.c+r.sec+r.b).toLowerCase().includes(q)):list}
+
+/* ---------- 현재 시총 미달 ---------- */
+function rowHtml(r){const st=STAGES[S.st],lim=st.mc[r.m],cur=STAGES[CUR].mc[r.m];
   const ratio=r.mc/lim,need=(lim/r.mc-1)*100,crit=r.mc<cur;
   const op=r.op[r.op.length-1],ni=r.ni[r.ni.length-1];
   const pos=r.hi&&r.lo&&r.hi>r.lo?Math.min(1,Math.max(0,(r.p-r.lo)/(r.hi-r.lo))):null;
   const tags=(crit?'<span class="pill crit">현행 미달</span>':'')+(r.st?'<span class="pill warn">거래정지</span>':'')+(r.loss3?'<span class="pill mute">3년 영업적자</span>':'')+(r.sp?'<span class="pill mute">스팩</span>':'');
   return `<tr>
-  <td class="nm"><a href="https://finance.naver.com/item/main.naver?code=${r.c}" target="_blank" rel="noopener">${r.n}</a>${tags}<span class="sub"><span class="mono">${r.c}</span> · ${r.sec}</span></td>
+  <td class="nm"><a href="https://finance.naver.com/item/main.naver?code=${r.c}" target="_blank" rel="noopener">${esc(r.n)}</a>${tags}<span class="sub"><span class="mono">${r.c}</span> · ${esc(r.sec)}</span></td>
   <td class="r">${fmt(r.p)}</td>
   <td class="r ${r.ch>0?'up':r.ch<0?'down':''}">${r.ch>0?'+':''}${fmt(r.ch,2)}%</td>
   <td class="r">${fmt(r.mc,1)}억</td>
@@ -195,29 +282,21 @@ function rowHtml(r){const st=STAGES[S.st],lim=st.mc[r.m],cur=STAGES[0].mc[r.m];
   <td>${pos==null?'–':`<span class="pos" title="52주 최저 ${fmt(r.lo)} · 최고 ${fmt(r.hi)}"><i style="left:calc(${pos*100}% - 1.5px)"></i></span>`}</td>
   </tr>`}
 const SORTS={gap:(a,b)=>a.mc-b.mc,mc:(a,b)=>a.mc-b.mc,rv:(a,b)=>b.R-a.R,ps:(a,b)=>(a.ps??1e9)-(b.ps??1e9),ch:(a,b)=>b.ch-a.ch,n:(a,b)=>a.n.localeCompare(b.n,'ko')};
-function render(){
+function renderNow(){
   const st=STAGES[S.st];
-  [0,1].forEach(m=>{$('m'+m).setAttribute('aria-pressed',S.m===m);$('m'+m).querySelector('.cnt').textContent=base(m).length});
+  [0,1].forEach(m=>$('m'+m).querySelector('.cnt').textContent=base(m).length);
   STAGES.forEach((s,i)=>$('st'+i).setAttribute('aria-pressed',S.st===i));
-  $('q').value=S.q;$('sort').value=S.sort;$('xsp').checked=S.xsp;$('xst').checked=S.xst;
-  $('rule').innerHTML=`<span>시가총액 <b>${st.mc[S.m]}억 원 미만</b></span><span>매출액 <b>${st.rv[S.m]}억 원 이상</b></span><span class="lbl">현행 기준: 시총 ${STAGES[0].mc[S.m]}억 · 매출 ${STAGES[0].rv[S.m]}억</span>`;
-  let list=base(S.m);
-  const q=S.q.trim().toLowerCase();
-  if(q)list=list.filter(r=>(r.n+r.c+r.sec+r.b).toLowerCase().includes(q));
-  const counts={};list.forEach(r=>counts[r.b]=(counts[r.b]||0)+1);
-  if(S.sec!=='전체'&&!counts[S.sec])S.sec='전체';
-  $('chips').innerHTML=['전체',...ORDER.filter(b=>counts[b])].map(b=>`<button class="chip" data-b="${b}" aria-pressed="${S.sec===b}">${b}<span class="cnt">${b==='전체'?list.length:counts[b]}</span></button>`).join('');
-  const shown=S.sec==='전체'?list:list.filter(r=>r.b===S.sec);
-  const crit=shown.filter(r=>r.mc<STAGES[0].mc[r.m]).length;
-  const med=a=>{if(!a.length)return null;const s=[...a].sort((x,y)=>x-y);return s[Math.floor(s.length/2)]};
-  $('stats').innerHTML=[
+  $('rule').innerHTML=`<span>시가총액 <b>${st.mc[S.m]}억 원 미만</b></span><span>매출액 <b>${st.rv[S.m]}억 원 이상</b></span><span class="lbl">현행 기준: 시총 ${STAGES[CUR].mc[S.m]}억 · 매출 ${STAGES[CUR].rv[S.m]}억</span>`;
+  const shown=chips(searchFilter(base(S.m)));
+  const crit=shown.filter(r=>r.mc<STAGES[CUR].mc[r.m]).length;
+  $('stats').innerHTML=statHtml([
     ['해당 종목',fmt(shown.length)+'개'],
     ['현행 기준에도 미달',fmt(crit)+'개'],
     ['시총 중앙값',fmt(med(shown.map(r=>r.mc)),1)+'억'],
     ['매출 중앙값',eok(med(shown.map(r=>r.R)))],
     ['기준까지 상승 필요(중앙값)',shown.length?'+'+fmt(med(shown.map(r=>(st.mc[r.m]/r.mc-1)*100)))+'%':'–'],
-  ].map(([k,v])=>`<div class="stat"><div class="v">${v}</div><div class="k">${k}</div></div>`).join('');
-  if(!shown.length){$('list').innerHTML=`<div class="empty">조건에 맞는 종목이 없습니다. 기준 적용 연도를 뒤로 옮기거나 검색어를 지워 보세요.</div>`;save();return}
+  ]);
+  if(!shown.length){$('list').innerHTML=`<div class="empty">조건에 맞는 종목이 없습니다. 기준 적용 시점을 뒤로 옮기거나 검색어를 지워 보세요.</div>`;return}
   const groups=ORDER.filter(b=>shown.some(r=>r.b===b));
   $('list').innerHTML=groups.map(b=>{const g=shown.filter(r=>r.b===b).sort(SORTS[S.sort]);
     const subs=[...new Set(g.map(r=>r.sec))];const sm=g.reduce((a,r)=>a+r.mc,0);
@@ -228,19 +307,157 @@ function render(){
       <th class="r">영업이익</th><th class="r">순이익</th><th class="r" data-k="ps">PSR</th><th class="r">PBR</th><th class="r">부채비율</th><th>52주 위치</th>
     </tr></thead><tbody>${g.map(rowHtml).join('')}</tbody></table></div></details>`}).join('');
   document.querySelectorAll(`th[data-k="${S.sort}"]`).forEach(th=>th.insertAdjacentHTML('beforeend','<span class="ar">▼</span>'));
+}
+
+/* ---------- 회복 사례 ---------- */
+function limitAt(d,m){d=String(d);if(d<'20260101')return[50,40][m];if(d<'20260701')return[200,150][m];if(d<'20270101')return[300,200][m];return[500,300][m]}
+const EVL={W:'시총 미달 경고 (관리종목 지정우려)',D:'관리종목 지정',R:'관리종목 해제 (시총 미달 사유 해소)'};
+const KINDL={release:'관리종목 해제',warn:'경고 후 회복',est:'추정'};
+const kindUrl=r=>`https://kind.krx.co.kr/common/disclsviewer.do?method=search&acptno=${r}`;
+const ymdNum=s=>+String(s).replace(/-/g,'');
+const fmtD=n=>{n=String(n);return `${n.slice(0,4)}.${n.slice(4,6)}.${n.slice(6,8)}`};
+function caseKind(c){return c.eps.some(e=>e.kind==='release')?'release':c.eps.some(e=>e.kind==='warn')?'warn':'est'}
+function hbase(m){return H.cases.filter(c=>c.m===m&&(S.k2==='all'||c.K===S.k2)&&!(S.xdes&&c.status==='designated'))}
+function shadeRanges(c){
+  const d=c.chart.d,out=[];
+  const idxOf=x=>{const n=ymdNum(x);let i=d.findIndex(v=>v>=n);return i<0?d.length-1:i};
+  if(c.src==='est'){c.eps.forEach(e=>out.push([idxOf(e.from),idxOf(e.to)]));}
+  else{
+    const ev=[...c.ev].sort((a,b)=>a.d<b.d?-1:1);
+    ev.forEach((e,k)=>{
+      const i=idxOf(e.d);
+      if(e.t==='W')out.push([Math.max(0,i-24),i]);
+      if(e.t==='D'){const r=ev.slice(k+1).find(x=>x.t==='R');const j=r?idxOf(r.d):d.length-1;out.push([Math.max(0,i-29),r?Math.max(i,j-45):i])}
+    });
+  }
+  return out;
+}
+function chartSvg(c){
+  const d=c.chart.d,p=c.chart.c;if(p.length<2)return '<p class="note">차트 데이터가 없습니다.</p>';
+  const W=640,Hh=230,L=52,R=10,T=12,B=26;
+  const thr=d.map(x=>limitAt(x,c.m)*1e8/c.shares);
+  const all=[...p,...thr];let lo=Math.min(...all),hi=Math.max(...all);const pad=(hi-lo)*.08||1;lo=Math.max(0,lo-pad);hi+=pad;
+  const x=i=>L+i*(W-L-R)/(p.length-1),y=v=>T+(hi-v)*(Hh-T-B)/(hi-lo);
+  const ticks=5,tv=[...Array(ticks)].map((_,k)=>lo+(hi-lo)*k/(ticks-1));
+  let s=`<svg viewBox="0 0 ${W} ${Hh}" role="img" aria-label="${esc(c.n)} 주가 차트">`;
+  shadeRanges(c).forEach(([a,b])=>{s+=`<rect x="${x(a)}" y="${T}" width="${Math.max(2,x(b)-x(a))}" height="${Hh-T-B}" fill="var(--crit-soft)"/>`});
+  tv.forEach(v=>{s+=`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end" font-size="10.5" fill="var(--muted)" font-family="var(--f-num)">${fmt(v)}</text>`});
+  // x labels: month starts, thinned
+  const months=[];let last='';d.forEach((v,i)=>{const mth=String(v).slice(0,6);if(mth!==last){months.push(i);last=mth}});
+  const step=Math.ceil(months.length/6);months.forEach((i,k)=>{if(k%step)return;const v=String(d[i]);s+=`<text x="${x(i)}" y="${Hh-8}" text-anchor="middle" font-size="10.5" fill="var(--muted)" font-family="var(--f-num)">${v.slice(2,4)}.${v.slice(4,6)}</text>`});
+  s+=`<polyline points="${thr.map((v,i)=>x(i)+','+y(v)).join(' ')}" fill="none" stroke="var(--crit)" stroke-width="1.3" stroke-dasharray="5 4"/>`;
+  s+=`<path d="M${x(0)},${y(p[0])} ${p.map((v,i)=>'L'+x(i)+','+y(v)).join(' ')} L${x(p.length-1)},${Hh-B} L${x(0)},${Hh-B}Z" fill="var(--accent-soft)" opacity=".7"/>`;
+  s+=`<polyline points="${p.map((v,i)=>x(i)+','+y(v)).join(' ')}" fill="none" stroke="var(--accent)" stroke-width="1.7"/>`;
+  (c.ev||[]).forEach(e=>{const n=ymdNum(e.d);let i=d.findIndex(v=>v>=n);if(i<0)return;const col=e.t==='W'?'var(--warn)':e.t==='D'?'var(--crit)':'var(--accent)';
+    s+=`<line x1="${x(i)}" x2="${x(i)}" y1="${T}" y2="${Hh-B}" stroke="${col}" stroke-width="1"/><circle cx="${x(i)}" cy="${y(p[i])}" r="3.6" fill="${col}" stroke="var(--surface)" stroke-width="1.5"/>`});
+  const li=p.length-1;s+=`<circle cx="${x(li)}" cy="${y(p[li])}" r="3" fill="var(--accent)"/>`;
+  s+=`<line class="hx" x1="0" x2="0" y1="${T}" y2="${Hh-B}" stroke="var(--muted)" stroke-width="1" visibility="hidden"/>`;
+  s+=`<rect class="hit" x="${L}" y="0" width="${W-L-R}" height="${Hh}" fill="transparent"/></svg>`;
+  return s;
+}
+function hoverChart(box,c){
+  const svg=box.querySelector('svg'),tip=box.querySelector('.tip'),hx=svg.querySelector('.hx');if(!svg)return;
+  const W=640,L=52,R=10,n=c.chart.c.length;
+  const move=ev=>{const r=svg.getBoundingClientRect();const vx=(ev.clientX-r.left)*W/r.width;let i=Math.round((vx-L)*(n-1)/(W-L-R));i=Math.max(0,Math.min(n-1,i));
+    const px=L+i*(W-L-R)/(n-1);hx.setAttribute('x1',px);hx.setAttribute('x2',px);hx.setAttribute('visibility','visible');
+    const pr=c.chart.c[i],dd=c.chart.d[i];tip.hidden=false;
+    tip.innerHTML=`${fmtD(dd)} · ${fmt(pr)}원<br>추정 시총 ${fmt(pr*c.shares/1e8)}억 / 기준 ${limitAt(dd,c.m)}억`;
+    const left=px*r.width/W;tip.style.left=Math.min(r.width-tip.offsetWidth,Math.max(0,left-tip.offsetWidth/2))+'px'};
+  svg.addEventListener('pointermove',move);svg.addEventListener('pointerdown',move);
+  svg.addEventListener('pointerleave',()=>{tip.hidden=true;hx.setAttribute('visibility','hidden')});
+}
+function cardHtml(c,idx){
+  const st=c.status==='designated'?'<span class="pill crit">이후 관리종목 지정</span>':c.status==='warned'?'<span class="pill warn">최근 다시 경고</span>':'<span class="pill ok">현재 정상</span>';
+  const kp=`<span class="pill ${c.K==='est'?'mute':c.K==='release'?'ok':'warn'}">${KINDL[c.K]}</span>`;
+  const curLim=STAGES[CUR].mc[c.m];
+  const op=c.op.at(-1),ni=c.ni.at(-1);
+  const tl=[];
+  if(c.src==='est')c.eps.forEach(e=>tl.push(`<li><span class="d">${e.from.slice(2).replace(/-/g,'.')}~${e.to.slice(5).replace(/-/g,'.')}</span><i class="k-E"></i><span>추정 시총 기준 미달 ${e.days}거래일 → ${e.d.slice(5).replace('-','.')} 회복</span></li>`));
+  [...(c.ev||[])].sort((a,b)=>a.d<b.d?-1:1).forEach(e=>tl.push(`<li><span class="d">${e.d.slice(2).replace(/-/g,'.')}</span><i class="k-${e.t}"></i><a href="${kindUrl(e.rcp)}" target="_blank" rel="noopener">${EVL[e.t]}</a></li>`));
+  let rel;
+  if(c.related==null)rel='<span class="none">관련 공시를 아직 받지 못했습니다. 다음 갱신 때 채워집니다.</span>';
+  else if(!c.related.length)rel='<span class="none">이 기간에 증자·계약·최대주주 변경 같은 주요 공시는 없었습니다. 주가 상승으로 회복한 경우입니다.</span>';
+  else rel='<ul>'+c.related.map(r=>`<li><span class="mono">${r.d.slice(2).replace(/-/g,'.')}</span> <a href="${kindUrl(r.rcp)}" target="_blank" rel="noopener">${esc(r.title)}</a></li>`).join('')+'</ul>';
+  return `<article class="card">
+   <div>
+    <h3><a href="https://finance.naver.com/item/main.naver?code=${c.c}" target="_blank" rel="noopener">${esc(c.n)}</a> ${kp}${st}${c.st?'<span class="pill warn">거래정지</span>':''}</h3>
+    <div class="sub"><span class="mono">${c.c}</span> · ${esc(c.sec)}</div>
+    <dl class="facts">
+      <div><dt>당시 시총 기준</dt><dd>${c.thr}억</dd></div>
+      <div><dt>당시 매출 (FY${c.revYear})</dt><dd>${eok(c.revAt)}</dd></div>
+      <div><dt>회복 후 10거래일</dt><dd class="${c.move>0?'up':c.move<0?'down':''}">${c.move==null?'–':(c.move>0?'+':'')+fmt(c.move,1)+'%'}</dd></div>
+      <div><dt>현재가</dt><dd>${fmt(c.p)} <span class="${c.ch>0?'up':c.ch<0?'down':''}">${c.ch>0?'+':''}${fmt(c.ch,2)}%</span></dd></div>
+      <div><dt>현재 시총</dt><dd>${fmt(c.mc,1)}억</dd></div>
+      <div><dt>현행 기준 대비</dt><dd class="${c.mc<curLim?'neg':''}">${fmt(c.mc/curLim*100)}%</dd></div>
+      <div><dt>최근 매출 ${spark(c.rv)}</dt><dd>${eok(c.rv.filter(x=>x!=null).at(-1))}</dd></div>
+      <div><dt>영업이익</dt><dd class="${op<0?'neg':''}">${eok(op)}</dd></div>
+      <div><dt>순이익</dt><dd class="${ni<0?'neg':''}">${eok(ni)}</dd></div>
+      <div><dt>PSR · PBR</dt><dd>${c.rv.at(-1)>0?fmt(c.mc/c.rv.filter(x=>x!=null).at(-1),2):'–'} · ${c.pbr==null?'–':fmt(c.pbr,2)}</dd></div>
+      <div><dt>부채비율</dt><dd>${c.db==null?'–':fmt(c.db)+'%'}</dd></div>
+    </dl>
+    <ul class="tl">${tl.join('')}</ul>
+    <div class="rel"><b>회복 무렵 주요 공시</b>${rel}</div>
+   </div>
+   <div class="chartbox" data-i="${idx}">${chartSvg(c)}<div class="tip" hidden></div>
+    <div class="legend"><span><b></b>주가(수정주가)</span><span><b class="th"></b>시총 기준 환산 주가</span><span><b class="sh"></b>기준 미달 구간</span><span><i class="k-W" style="width:8px;height:8px;display:inline-block;border-radius:2px"></i>경고</span><span><i class="k-D" style="width:8px;height:8px;display:inline-block;border-radius:2px"></i>지정</span><span><i class="k-R" style="width:8px;height:8px;display:inline-block;border-radius:2px"></i>해제</span></div>
+   </div>
+  </article>`;
+}
+const HSORTS={rec:(a,b)=>a.recDate<b.recDate?1:-1,move:(a,b)=>(b.move??-1e9)-(a.move??-1e9),mc:(a,b)=>a.mc-b.mc,rv:(a,b)=>b.revAt-a.revAt};
+let shownCases=[];
+function renderRec(){
+  if(!H){$('list').innerHTML='<div class="empty">회복 사례를 불러오는 중입니다.</div>';$('stats').innerHTML='';return}
+  [0,1].forEach(m=>$('m'+m).querySelector('.cnt').textContent=hbase(m).length);
+  document.querySelectorAll('[data-k2]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.k2===S.k2));
+  $('rule').innerHTML=`<span>2024.01 이후 · 당시 매출 기준 이상 · 시총 기준 미달 후 회복</span><span class="lbl">현재 기준: 시총 ${STAGES[CUR].mc[S.m]}억 (2027년 ${STAGES[2].mc[S.m]}억)</span>`;
+  const shown=chips(searchFilter(hbase(S.m)));
+  $('stats').innerHTML=statHtml([
+    ['회복 사례',fmt(shown.length)+'개'],
+    ['관리종목 해제',fmt(shown.filter(c=>c.K==='release').length)+'개'],
+    ['경고 후 회복',fmt(shown.filter(c=>c.K==='warn').length)+'개'],
+    ['추정',fmt(shown.filter(c=>c.K==='est').length)+'개'],
+    ['회복 후 10거래일(중앙값)',(()=>{const v=med(shown.map(c=>c.move));return v==null?'–':(v>0?'+':'')+fmt(v,1)+'%'})()],
+  ]);
+  if(!shown.length){$('list').innerHTML=`<div class="empty">${S.m===0&&S.k2!=='all'&&S.k2!=='est'?'코스피는 시총 경고·해제 공시가 없어 추정 사례만 있습니다.':'조건에 맞는 사례가 없습니다. 구분이나 검색어를 바꿔 보세요.'}</div>`;return}
+  shownCases=[];
+  const groups=ORDER.filter(b=>shown.some(r=>r.b===b));
+  $('list').innerHTML=groups.map(b=>{const g=shown.filter(r=>r.b===b).sort(HSORTS[S.hsort]);
+    const subs=[...new Set(g.map(r=>r.sec))];
+    const html=g.map(c=>{shownCases.push(c);return cardHtml(c,shownCases.length-1)}).join('');
+    return `<details class="sec" open><summary><h2>${b}</h2><span class="meta"><span class="mono">${g.length}</span>개 사례 · 세부업종 ${subs.length}개</span><span class="caret">▶</span></summary><div class="cards">${html}</div></details>`}).join('');
+  document.querySelectorAll('.chartbox').forEach(bx=>hoverChart(bx,shownCases[+bx.dataset.i]));
+}
+
+function render(){
+  document.body.dataset.view=VIEW;
+  document.querySelectorAll('.views a').forEach(a=>{if(a.dataset.view===VIEW)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});
+  [0,1].forEach(m=>$('m'+m).setAttribute('aria-pressed',S.m===m));
+  $('q').value=S.q;$('sort').value=S.sort;$('xsp').checked=S.xsp;$('xst').checked=S.xst;$('hsort').value=S.hsort;$('xdes').checked=S.xdes;
+  $('vc-now').textContent=base(0).length+base(1).length;
+  if(H)$('vc-rec').textContent=H.cases.length;
+  VIEW==='rec'?renderRec():renderNow();
   save();
 }
 document.addEventListener('click',e=>{
   const m=e.target.closest('[data-m]');if(m){S.m=+m.dataset.m;S.sec='전체';render();return}
-  const s=e.target.closest('[data-i]');if(s){S.st=+s.dataset.i;render();return}
+  const s=e.target.closest('[data-i]:not(.chartbox)');if(s&&s.closest('#stages')){S.st=+s.dataset.i;render();return}
+  const k=e.target.closest('[data-k2]');if(k){S.k2=k.dataset.k2;S.sec='전체';render();return}
   const c=e.target.closest('.chip');if(c){S.sec=c.dataset.b;render();return}
   const t=e.target.closest('th[data-k]');if(t){S.sort=t.dataset.k;render()}
 });
+window.addEventListener('hashchange',()=>{VIEW=location.hash==='#recovered'?'rec':'now';S.sec='전체';render();window.scrollTo(0,0)});
 $('q').addEventListener('input',e=>{S.q=e.target.value;render()});
 $('sort').addEventListener('change',e=>{S.sort=e.target.value;render()});
+$('hsort').addEventListener('change',e=>{S.hsort=e.target.value;render()});
 $('xsp').addEventListener('change',e=>{S.xsp=e.target.checked;render()});
 $('xst').addEventListener('change',e=>{S.xst=e.target.checked;render()});
+$('xdes').addEventListener('change',e=>{S.xdes=e.target.checked;render()});
 render();
+fetch('history.json').then(r=>r.ok?r.json():Promise.reject(r.status)).then(j=>{
+  H=j;H.cases.forEach(c=>c.K=caseKind(c));
+  document.querySelectorAll('.hasof').forEach(e=>e.textContent='('+kdate(j.asOf)+' 갱신)');
+  render();
+}).catch(()=>{if(VIEW==='rec')$('list').innerHTML='<div class="empty">회복 사례 데이터를 불러오지 못했습니다. 잠시 후 새로고침해 보세요.</div>'});
 </script>
 </body>
 </html>
