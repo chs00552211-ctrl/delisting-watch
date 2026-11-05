@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>시총 미달 종목판</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}
+/* Layout: sticky control deck on top, sector-grouped ledgers below; numbers in mono, right-aligned */
+:root{
+  --bg:#f5f6f4; --surface:#ffffff; --ink:#1b2321; --muted:#5f6b67; --line:#dde2df;
+  --accent:#0f6b5c; --accent-soft:#e2efeb; --crit:#c2362b; --crit-soft:#fbe6e3; --warn:#a86a00; --warn-soft:#fbf0d9;
+  --up:#c2362b; --down:#2257b8; --bar:#c9d3cf;
+  --f-body:"IBM Plex Sans KR",system-ui,"Malgun Gothic",sans-serif; --f-num:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#121816; --surface:#1a2220; --ink:#e4ebe8; --muted:#93a19c; --line:#2b3633;
+  --accent:#4fc2a9; --accent-soft:#183531; --crit:#ff7a6e; --crit-soft:#3a1e1b; --warn:#e5ad4a; --warn-soft:#3a2d14;
+  --up:#ff7a6e; --down:#7aa7ff; --bar:#3a4744; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121816; --surface:#1a2220; --ink:#e4ebe8; --muted:#93a19c; --line:#2b3633;
+  --accent:#4fc2a9; --accent-soft:#183531; --crit:#ff7a6e; --crit-soft:#3a1e1b; --warn:#e5ad4a; --warn-soft:#3a2d14;
+  --up:#ff7a6e; --down:#7aa7ff; --bar:#3a4744; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.5}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:1280px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.top{padding-block:28px 18px}
+h1{font-size:26px;margin:0 0 6px;letter-spacing:-.01em;text-wrap:balance}
+.lede{color:var(--muted);margin:0;max-width:72ch}
+.num,td.r,.mono{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+.deck{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:0 2px 10px -8px rgba(0,0,0,.4)}
+.deck .wrap{display:flex;flex-direction:column;gap:10px;padding-block:12px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--bg)}
+.seg button{font:inherit;border:0;background:transparent;color:var(--muted);padding:7px 12px;cursor:pointer;white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--surface);font-weight:600}
+.seg.big button{font-size:15px;padding:8px 18px}
+.seg button .cnt{font-family:var(--f-num);font-size:12px;opacity:.8;margin-left:6px}
+.lbl{font-size:12px;color:var(--muted);letter-spacing:.04em}
+input[type=search],select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 10px}
+input[type=search]{flex:1 1 200px;min-width:0}
+label.chk{display:inline-flex;gap:6px;align-items:center;color:var(--muted);cursor:pointer;user-select:none}
+button:focus-visible,input:focus-visible,select:focus-visible,.chip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.rule{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:13px}
+.rule b{font-family:var(--f-num);font-weight:500}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:thin}
+.chip{font:inherit;font-size:13px;flex:none;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:4px 11px;cursor:pointer}
+.chip[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:600}
+.chip .cnt{font-family:var(--f-num);font-size:11px;color:var(--muted);margin-left:4px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;padding-block:16px 4px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+.stat .v{font-family:var(--f-num);font-size:22px;font-weight:500}
+.stat .k{font-size:12px;color:var(--muted)}
+main{padding-block:12px 60px;display:flex;flex-direction:column;gap:14px}
+details.sec{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+details.sec>summary{list-style:none;cursor:pointer;display:flex;align-items:baseline;gap:10px;padding:12px 16px;border-bottom:1px solid transparent}
+details.sec[open]>summary{border-bottom-color:var(--line)}
+details.sec>summary::-webkit-details-marker{display:none}
+summary h2{font-size:17px;margin:0}
+summary .meta{color:var(--muted);font-size:13px}
+summary .caret{margin-left:auto;color:var(--muted);transition:transform .15s}
+details[open] .caret{transform:rotate(90deg)}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:1060px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle;white-space:nowrap}
+th{font-size:12px;font-weight:500;color:var(--muted);background:var(--bg);position:relative}
+th.r,td.r{text-align:right}
+th[data-k]{cursor:pointer}
+th[data-k]:hover{color:var(--ink)}
+th .ar{font-size:10px;margin-left:3px}
+tbody tr:hover{background:var(--accent-soft)}
+tbody tr:last-child td{border-bottom:0}
+.nm a{color:var(--ink);font-weight:600;text-decoration:none}
+.nm a:hover{color:var(--accent);text-decoration:underline}
+.nm .sub{display:block;font-size:12px;color:var(--muted);font-weight:400}
+.pill{display:inline-block;font-size:11px;border-radius:4px;padding:1px 6px;margin-left:6px;font-weight:600;vertical-align:1px}
+.pill.crit{background:var(--crit-soft);color:var(--crit)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.mute{background:var(--bg);color:var(--muted);border:1px solid var(--line)}
+.up{color:var(--up)}.down{color:var(--down)}.neg{color:var(--crit)}
+.gauge{display:flex;align-items:center;gap:8px;justify-content:flex-end}
+.gauge .g{width:70px;height:6px;border-radius:3px;background:var(--bar);overflow:hidden}
+.gauge .g i{display:block;height:100%;background:var(--warn)}
+.gauge .g i.crit{background:var(--crit)}
+.need{font-family:var(--f-num);font-size:12px;color:var(--muted);min-width:56px;text-align:right}
+svg.sp{vertical-align:middle}
+.pos{width:60px;height:6px;border-radius:3px;background:var(--bar);position:relative;display:inline-block;vertical-align:middle}
+.pos i{position:absolute;top:-3px;width:3px;height:12px;border-radius:1px;background:var(--accent)}
+.empty{background:var(--surface);border:1px dashed var(--line);border-radius:10px;padding:40px 16px;text-align:center;color:var(--muted)}
+footer{color:var(--muted);font-size:12px;padding-block:0 40px}
+footer ul{margin:6px 0 0;padding-left:18px}
+@media (max-width:600px){h1{font-size:21px}.seg button{padding:7px 9px}.seg.big button{padding:8px 14px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="top wrap">
+  <h1>시총 미달 종목판</h1>
+  <p class="lede">상장폐지 <b>매출액 기준은 넘지만 시가총액 기준에는 못 미치는</b> 코스피·코스닥 종목을 섹터별로 모았습니다. 기준 적용 연도를 바꾸면 2025년 개편안의 단계별 기준으로 다시 걸러집니다. 평일 장 마감 후 매일 자동 갱신됩니다. <span class="mono" id="asof"></span></p>
+</header>
+
+<div class="deck">
+  <div class="wrap">
+    <div class="row">
+      <div class="seg big" role="group" aria-label="시장">
+        <button id="m0" data-m="0" aria-pressed="true">코스피<span class="cnt"></span></button>
+        <button id="m1" data-m="1" aria-pressed="false">코스닥<span class="cnt"></span></button>
+      </div>
+      <span class="lbl">기준 적용</span>
+      <div class="seg" role="group" aria-label="기준 적용 연도" id="stages"></div>
+    </div>
+    <div class="row">
+      <input type="search" id="q" placeholder="종목명, 코드, 업종 검색">
+      <select id="sort" aria-label="정렬">
+        <option value="gap">기준까지 필요한 상승률 큰 순</option>
+        <option value="mc">시총 작은 순</option>
+        <option value="rv">매출 큰 순</option>
+        <option value="ps">시총/매출(PSR) 낮은 순</option>
+        <option value="ch">오늘 등락률 순</option>
+        <option value="n">이름순</option>
+      </select>
+      <label class="chk"><input type="checkbox" id="xsp" checked> 스팩 제외</label>
+      <label class="chk"><input type="checkbox" id="xst"> 거래정지 제외</label>
+    </div>
+    <div class="rule" id="rule"></div>
+    <div class="chips" id="chips"></div>
+  </div>
+</div>
+
+<div class="wrap">
+  <section class="stats" id="stats"></section>
+  <main id="list"></main>
+  <footer>
+    <b>데이터와 읽는 법</b>
+    <ul>
+      <li>시세·시가총액·재무: 네이버 증권 공개 데이터, <span id="asof2"></span> 기준 스냅샷입니다. 실시간이 아닙니다.</li>
+      <li>매출액은 가장 최근 확정 연간 실적(대부분 연결 기준)입니다. 거래소 규정은 사업보고서상 매출액(코스피는 별도 재무제표 기준 등 세부 차이)을 쓰므로 실제 판정과 다를 수 있습니다.</li>
+      <li>실제 규정은 시총 미달이 <b>30거래일 연속</b>일 때 관리종목으로 지정하고, 이후 90일 안에 회복하지 못하면 상장폐지합니다. 이 표는 하루치 시총만 비교합니다.</li>
+      <li>"현행 미달" 표시는 지금 시행 중인 기준에도 시총이 못 미친다는 뜻입니다. 우선주, ETF, 펀드형 종목은 뺐습니다.</li>
+      <li>투자 판단 자료가 아니라 기준 대비 위치를 훑어보는 용도입니다.</li>
+    </ul>
+  </footer>
+</div>
+
+<script>
+const D=__DATA__;
+const STAGES=[
+  {k:'now',t:'현행',mc:[50,40],rv:[50,30]},
+  {k:'2026',t:'2026',mc:[200,150],rv:[50,30]},
+  {k:'2027',t:'2027',mc:[300,200],rv:[100,50]},
+  {k:'2028',t:'2028',mc:[500,300],rv:[200,75]},
+  {k:'2029',t:'2029 최종',mc:[500,300],rv:[300,100]},
+];
+const ORDER=['IT·반도체','자동차·운송','소비재','헬스케어','소재','산업재','미디어·통신','금융·부동산','에너지·유틸리티','기타'];
+const S={m:0,st:1,q:'',sort:'gap',xsp:true,xst:false,sec:'전체'};
+try{Object.assign(S,JSON.parse(localStorage.getItem('dl-state')||'{}'))}catch(e){}
+const $=id=>document.getElementById(id);
+const rows=D.rows.filter(r=>!/클래스/.test(r.n));
+rows.forEach(r=>{let v=null,y=null;for(let i=r.rv.length-1;i>=0;i--)if(r.rv[i]!=null){v=r.rv[i];y=r.y[i];break}r.R=v;r.RY=y;
+  const op=r.op.filter(x=>x!=null);r.loss3=op.length>=3&&op.slice(-3).every(x=>x<0);r.ps=v>0?r.mc/v:null;});
+const fmt=(n,d=0)=>n==null?'–':n.toLocaleString('ko-KR',{maximumFractionDigits:d,minimumFractionDigits:d});
+const eok=n=>n==null?'–':(Math.abs(n)>=10000?fmt(n/10000,2)+'조':fmt(n)+'억');
+$('asof').textContent=$('asof2').textContent=new Date(D.asOf).toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'})+' 종가';
+$('asof').textContent='('+$('asof').textContent+' 기준)';
+
+$('stages').innerHTML=STAGES.map((s,i)=>`<button id="st${i}" data-i="${i}" aria-pressed="false">${s.t}</button>`).join('');
+function save(){try{localStorage.setItem('dl-state',JSON.stringify(S))}catch(e){}}
+function base(m){const st=STAGES[S.st];return rows.filter(r=>r.m===m&&r.R!=null&&r.R>=st.rv[m]&&r.mc<st.mc[m]&&!(S.xsp&&r.sp)&&!(S.xst&&r.st))}
+function spark(a){const v=a.filter(x=>x!=null);if(v.length<2)return '';const mx=Math.max(...v),mn=Math.min(0,...v),w=54,h=18;
+  const pts=a.map((x,i)=>x==null?null:[i*(w-4)/(a.length-1)+2,h-2-(x-mn)/((mx-mn)||1)*(h-4)]).filter(Boolean);
+  const l=pts[pts.length-1];
+  return `<svg class="sp" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true"><polyline points="${pts.map(p=>p.join(',')).join(' ')}" fill="none" stroke="var(--muted)" stroke-width="1.3"/><circle cx="${l[0]}" cy="${l[1]}" r="2.2" fill="var(--accent)"/></svg>`}
+function rowHtml(r){const st=STAGES[S.st],lim=st.mc[r.m],cur=STAGES[0].mc[r.m];
+  const ratio=r.mc/lim,need=(lim/r.mc-1)*100,crit=r.mc<cur;
+  const op=r.op[r.op.length-1],ni=r.ni[r.ni.length-1];
+  const pos=r.hi&&r.lo&&r.hi>r.lo?Math.min(1,Math.max(0,(r.p-r.lo)/(r.hi-r.lo))):null;
+  const tags=(crit?'<span class="pill crit">현행 미달</span>':'')+(r.st?'<span class="pill warn">거래정지</span>':'')+(r.loss3?'<span class="pill mute">3년 영업적자</span>':'')+(r.sp?'<span class="pill mute">스팩</span>':'');
+  return `<tr>
+  <td class="nm"><a href="https://finance.naver.com/item/main.naver?code=${r.c}" target="_blank" rel="noopener">${r.n}</a>${tags}<span class="sub"><span class="mono">${r.c}</span> · ${r.sec}</span></td>
+  <td class="r">${fmt(r.p)}</td>
+  <td class="r ${r.ch>0?'up':r.ch<0?'down':''}">${r.ch>0?'+':''}${fmt(r.ch,2)}%</td>
+  <td class="r">${fmt(r.mc,1)}억</td>
+  <td><div class="gauge"><span class="g" title="기준 ${lim}억 대비 ${fmt(ratio*100)}%"><i class="${crit?'crit':''}" style="width:${Math.min(100,ratio*100)}%"></i></span><span class="need">+${fmt(need)}%</span></div></td>
+  <td class="r">${eok(r.R)} <span class="lbl">${r.RY||''}</span></td>
+  <td>${spark(r.rv)}</td>
+  <td class="r ${op<0?'neg':''}">${eok(op)}</td>
+  <td class="r ${ni<0?'neg':''}">${eok(ni)}</td>
+  <td class="r">${r.ps==null?'–':fmt(r.ps,2)}</td>
+  <td class="r">${r.pbr==null?'–':fmt(r.pbr,2)}</td>
+  <td class="r">${r.db==null?'–':fmt(r.db)+'%'}</td>
+  <td>${pos==null?'–':`<span class="pos" title="52주 최저 ${fmt(r.lo)} · 최고 ${fmt(r.hi)}"><i style="left:calc(${pos*100}% - 1.5px)"></i></span>`}</td>
+  </tr>`}
+const SORTS={gap:(a,b)=>a.mc-b.mc,mc:(a,b)=>a.mc-b.mc,rv:(a,b)=>b.R-a.R,ps:(a,b)=>(a.ps??1e9)-(b.ps??1e9),ch:(a,b)=>b.ch-a.ch,n:(a,b)=>a.n.localeCompare(b.n,'ko')};
+function render(){
+  const st=STAGES[S.st];
+  [0,1].forEach(m=>{$('m'+m).setAttribute('aria-pressed',S.m===m);$('m'+m).querySelector('.cnt').textContent=base(m).length});
+  STAGES.forEach((s,i)=>$('st'+i).setAttribute('aria-pressed',S.st===i));
+  $('q').value=S.q;$('sort').value=S.sort;$('xsp').checked=S.xsp;$('xst').checked=S.xst;
+  $('rule').innerHTML=`<span>시가총액 <b>${st.mc[S.m]}억 원 미만</b></span><span>매출액 <b>${st.rv[S.m]}억 원 이상</b></span><span class="lbl">현행 기준: 시총 ${STAGES[0].mc[S.m]}억 · 매출 ${STAGES[0].rv[S.m]}억</span>`;
+  let list=base(S.m);
+  const q=S.q.trim().toLowerCase();
+  if(q)list=list.filter(r=>(r.n+r.c+r.sec+r.b).toLowerCase().includes(q));
+  const counts={};list.forEach(r=>counts[r.b]=(counts[r.b]||0)+1);
+  if(S.sec!=='전체'&&!counts[S.sec])S.sec='전체';
+  $('chips').innerHTML=['전체',...ORDER.filter(b=>counts[b])].map(b=>`<button class="chip" data-b="${b}" aria-pressed="${S.sec===b}">${b}<span class="cnt">${b==='전체'?list.length:counts[b]}</span></button>`).join('');
+  const shown=S.sec==='전체'?list:list.filter(r=>r.b===S.sec);
+  const crit=shown.filter(r=>r.mc<STAGES[0].mc[r.m]).length;
+  const med=a=>{if(!a.length)return null;const s=[...a].sort((x,y)=>x-y);return s[Math.floor(s.length/2)]};
+  $('stats').innerHTML=[
+    ['해당 종목',fmt(shown.length)+'개'],
+    ['현행 기준에도 미달',fmt(crit)+'개'],
+    ['시총 중앙값',fmt(med(shown.map(r=>r.mc)),1)+'억'],
+    ['매출 중앙값',eok(med(shown.map(r=>r.R)))],
+    ['기준까지 상승 필요(중앙값)',shown.length?'+'+fmt(med(shown.map(r=>(st.mc[r.m]/r.mc-1)*100)))+'%':'–'],
+  ].map(([k,v])=>`<div class="stat"><div class="v">${v}</div><div class="k">${k}</div></div>`).join('');
+  if(!shown.length){$('list').innerHTML=`<div class="empty">조건에 맞는 종목이 없습니다. 기준 적용 연도를 뒤로 옮기거나 검색어를 지워 보세요.</div>`;save();return}
+  const groups=ORDER.filter(b=>shown.some(r=>r.b===b));
+  $('list').innerHTML=groups.map(b=>{const g=shown.filter(r=>r.b===b).sort(SORTS[S.sort]);
+    const subs=[...new Set(g.map(r=>r.sec))];const sm=g.reduce((a,r)=>a+r.mc,0);
+    return `<details class="sec" open><summary><h2>${b}</h2><span class="meta"><span class="mono">${g.length}</span>개 종목 · 세부업종 ${subs.length}개 · 시총 합계 <span class="mono">${fmt(sm)}</span>억</span><span class="caret">▶</span></summary>
+    <div class="tbl"><table><thead><tr>
+      <th data-k="n">종목</th><th class="r">현재가</th><th class="r" data-k="ch">등락률</th><th class="r" data-k="mc">시가총액</th>
+      <th class="r" data-k="gap">기준 대비 · 필요 상승률</th><th class="r" data-k="rv">최근 매출</th><th>매출 3년</th>
+      <th class="r">영업이익</th><th class="r">순이익</th><th class="r" data-k="ps">PSR</th><th class="r">PBR</th><th class="r">부채비율</th><th>52주 위치</th>
+    </tr></thead><tbody>${g.map(rowHtml).join('')}</tbody></table></div></details>`}).join('');
+  document.querySelectorAll(`th[data-k="${S.sort}"]`).forEach(th=>th.insertAdjacentHTML('beforeend','<span class="ar">▼</span>'));
+  save();
+}
+document.addEventListener('click',e=>{
+  const m=e.target.closest('[data-m]');if(m){S.m=+m.dataset.m;S.sec='전체';render();return}
+  const s=e.target.closest('[data-i]');if(s){S.st=+s.dataset.i;render();return}
+  const c=e.target.closest('.chip');if(c){S.sec=c.dataset.b;render();return}
+  const t=e.target.closest('th[data-k]');if(t){S.sort=t.dataset.k;render()}
+});
+$('q').addEventListener('input',e=>{S.q=e.target.value;render()});
+$('sort').addEventListener('change',e=>{S.sort=e.target.value;render()});
+$('xsp').addEventListener('change',e=>{S.xsp=e.target.checked;render()});
+$('xst').addEventListener('change',e=>{S.xst=e.target.checked;render()});
+render();
+</script>
+</body>
+</html>
