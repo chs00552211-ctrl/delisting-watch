@@ -377,7 +377,7 @@ function cardHtml(c,idx){
   let rel;
   if(c.related==null)rel='<span class="none">관련 공시를 아직 받지 못했습니다. 다음 갱신 때 채워집니다.</span>';
   else if(!c.related.length)rel='<span class="none">이 기간에 증자·계약·최대주주 변경 같은 주요 공시는 없었습니다. 주가 상승으로 회복한 경우입니다.</span>';
-  else rel='<ul>'+c.related.map(r=>`<li><span class="mono">${r.d.slice(2).replace(/-/g,'.')}</span> <a href="${kindUrl(r.rcp)}" target="_blank" rel="noopener">${esc(r.title)}</a></li>`).join('')+'</ul>';
+  else rel='<ul>'+[...c.related].sort((a,b)=>a.d<b.d?-1:1).map(r=>`<li><span class="mono">${r.d.slice(2).replace(/-/g,'.')}</span> <a href="${kindUrl(r.rcp)}" target="_blank" rel="noopener">${esc(r.title)}</a></li>`).join('')+'</ul>';
   return `<article class="card">
    <div>
     <h3><a href="https://finance.naver.com/item/main.naver?code=${c.c}" target="_blank" rel="noopener">${esc(c.n)}</a> ${kp}${st}${c.st?'<span class="pill warn">거래정지</span>':''}</h3>
