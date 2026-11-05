@@ -56,13 +56,13 @@ async function kindSession() {
   const r = await kindFetch(`${KIND}/disclosure/details.do?method=searchDetailsMain`);
   cookie = r.headers.getSetCookie().map(c => c.split(';')[0]).join('; ');
 }
-async function kindSearch({ reportNm = '', corp = '', from, to }) {
+async function kindSearch({ reportNm = '', corp = '', code = '', from, to }) {
   const rows = [];
   for (let page = 1; page < 60; page++) {
     const q = new URLSearchParams({
       method: 'searchDetailsSub', forward: 'details_sub', currentPageSize: '100', pageIndex: String(page),
       orderMode: '0', orderStat: 'D', reportNm, reportNmTemp: reportNm, searchCorpName: corp,
-      fromDate: from, toDate: to, searchCodeType: '', repIsuSrtCd: '', isurCd: '', AKCKwdCode: '',
+      fromDate: from, toDate: to, searchCodeType: code ? 'char' : '', repIsuSrtCd: code ? 'A' + code : '', isurCd: '', AKCKwdCode: '',
     });
     const t = await (await kindFetch(`${KIND}/disclosure/details.do`, {
       method: 'POST', body: q,
@@ -284,7 +284,7 @@ export async function buildHistory({ root, lists, details }) {
     if (!cache.related[key] && !kindBlocked && relFetched < MAX_RELATED_FETCH) {
       try {
         if (!cookie) await kindSession();
-        const rel = await kindSearch({ corp: c.n, from: addDays(c.first, -60), to: addDays(c.recDate, 30) });
+        const rel = await kindSearch({ corp: c.n, code: c.c, from: addDays(c.first, -60), to: addDays(c.recDate, 30) });
         cache.related[key] = rel.filter(r => r.nm === c.n && RELATED.test(r.title) && !/관리종목/.test(r.title))
           .slice(0, 15).map(r => ({ d: r.dt, title: r.title, rcp: r.rcp }));
         relFetched++;
