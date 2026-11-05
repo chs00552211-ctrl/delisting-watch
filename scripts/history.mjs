@@ -280,7 +280,7 @@ export async function buildHistory({ root, lists, details }) {
 
   // 관련 공시: 캐시 우선, 없으면 KIND에서 천천히
   for (const c of out.sort((a, b) => (a.src === 'kind' ? -1 : 1))) {
-    const key = `${c.c}|${c.first}|${c.recDate}`;
+    const key = `v2|${c.c}|${c.first}|${c.recDate}`;
     if (!cache.related[key] && !kindBlocked && relFetched < MAX_RELATED_FETCH) {
       try {
         if (!cookie) await kindSession();
