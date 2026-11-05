@@ -10,6 +10,8 @@ const UA = { 'User-Agent': 'Mozilla/5.0 (delisting-watch)' };
 const START = '2024-01-01';
 const KIND_GAP_MS = 700;      // KIND 요청 간격
 const MAX_RELATED_FETCH = 40; // 한 번 실행에 새로 받을 "관련 공시" 검색 수
+const KIND_BUDGET_MS = 8 * 60e3; // KIND 작업 전체 시간 예산
+const T0 = Date.now();
 
 // 시점별 기준 (억원). m: 0=코스피, 1=코스닥
 export function mcapLimitAt(date, m) {
@@ -38,10 +40,11 @@ let kindBlocked = false;
 let lastKind = 0;
 async function kindFetch(url, opts = {}) {
   if (kindBlocked) throw new Error('KIND blocked');
+  if (Date.now() - T0 > KIND_BUDGET_MS) { kindBlocked = true; throw new Error('KIND 시간 예산 초과'); }
   const wait = lastKind + KIND_GAP_MS - Date.now();
   if (wait > 0) await sleep(wait);
   lastKind = Date.now();
-  const r = await fetch(url, { ...opts, headers: { ...UA, ...(cookie ? { Cookie: cookie } : {}), ...(opts.headers || {}) } });
+  const r = await fetch(url, { signal: AbortSignal.timeout(20000), ...opts, headers: { ...UA, ...(cookie ? { Cookie: cookie } : {}), ...(opts.headers || {}) } });
   if (r.status === 403) { kindBlocked = true; throw new Error('KIND 403'); }
   if (!r.ok) throw new Error('KIND ' + r.status);
   return r;
@@ -103,7 +106,7 @@ async function retry(fn) {
 async function dailyChart(code, from) {
   const end = today().replace(/-/g, '') + '2359';
   const j = await retry(async () => {
-    const r = await fetch(`https://api.stock.naver.com/chart/domestic/item/${code}/day?startDateTime=${from.replace(/-/g, '')}0000&endDateTime=${end}`, { headers: UA });
+    const r = await fetch(`https://api.stock.naver.com/chart/domestic/item/${code}/day?startDateTime=${from.replace(/-/g, '')}0000&endDateTime=${end}`, { headers: UA, signal: AbortSignal.timeout(20000) });
     if (!r.ok) throw new Error('naver ' + r.status);
     return r.json();
   });

@@ -27,7 +27,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 async function get(url) {
   for (let i = 0; i < 4; i++) {
     try {
-      const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (delisting-watch)' } });
+      const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (delisting-watch)' }, signal: AbortSignal.timeout(20000) });
       if (r.ok) return await r.json();
     } catch {}
     await sleep(800 * (i + 1));
