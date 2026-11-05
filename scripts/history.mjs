@@ -9,9 +9,9 @@ const KIND = 'https://kind.krx.co.kr';
 const UA = { 'User-Agent': 'Mozilla/5.0 (delisting-watch)' };
 const START = '2024-01-01';
 const KIND_GAP_MS = 700;      // KIND 요청 간격
-const MAX_RELATED_FETCH = 40; // 한 번 실행에 새로 받을 "관련 공시" 검색 수
-const KIND_BUDGET_MS = 8 * 60e3; // KIND 작업 전체 시간 예산
-const T0 = Date.now();
+const MAX_RELATED_FETCH = 80; // 한 번 실행에 새로 받을 "관련 공시" 검색 수
+const KIND_BUDGET_MS = 8 * 60e3; // KIND 요청에 쓸 수 있는 총 시간
+let kindSpent = 0;
 
 // 시점별 기준 (억원). m: 0=코스피, 1=코스닥
 export function mcapLimitAt(date, m) {
@@ -40,14 +40,17 @@ let kindBlocked = false;
 let lastKind = 0;
 async function kindFetch(url, opts = {}) {
   if (kindBlocked) throw new Error('KIND blocked');
-  if (Date.now() - T0 > KIND_BUDGET_MS) { kindBlocked = true; throw new Error('KIND 시간 예산 초과'); }
+  if (kindSpent > KIND_BUDGET_MS) { kindBlocked = true; throw new Error('KIND 시간 예산 초과'); }
   const wait = lastKind + KIND_GAP_MS - Date.now();
   if (wait > 0) await sleep(wait);
   lastKind = Date.now();
+  const t0 = Date.now();
+  try {
   const r = await fetch(url, { signal: AbortSignal.timeout(20000), ...opts, headers: { ...UA, ...(cookie ? { Cookie: cookie } : {}), ...(opts.headers || {}) } });
   if (r.status === 403) { kindBlocked = true; throw new Error('KIND 403'); }
   if (!r.ok) throw new Error('KIND ' + r.status);
   return r;
+  } finally { kindSpent += Date.now() - t0 + Math.max(0, wait); }
 }
 async function kindSession() {
   const r = await kindFetch(`${KIND}/disclosure/details.do?method=searchDetailsMain`);
