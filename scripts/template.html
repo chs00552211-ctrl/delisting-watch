@@ -115,6 +115,8 @@ body[data-view="fac"] .deck{display:none}
 .hb .bar i{display:block;height:100%;background:var(--accent)}
 .hb .v{font-family:var(--f-num);text-align:right}
 .vt td,.vt th{white-space:normal}
+table.vt{min-width:560px}
+.vt .pill{white-space:nowrap;margin-left:0}
 .vt td.lab{min-width:13em}
 .vt .grp{font-size:11px;color:var(--muted)}
 .duo{display:flex;flex-direction:column;gap:3px;min-width:120px}
@@ -129,6 +131,10 @@ body[data-view="fac"] .deck{display:none}
 .mbar .stack i{display:block;width:100%}
 .mbar .lb{font-size:11px;color:var(--muted);font-family:var(--f-num)}
 .mbar .nn{font-size:11px;font-family:var(--f-num)}
+.sub3{font-size:14px;margin:16px 0 6px}
+.ctag{display:inline-block;font-size:12px;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:1px 8px;margin:2px 4px 2px 0}
+.rb{width:70px;height:6px;border-radius:3px;background:var(--bar);overflow:hidden;margin-bottom:3px}
+.rb i{display:block;height:100%;background:var(--accent)}
 .lg{display:flex;gap:14px;font-size:12px;color:var(--muted);margin-top:8px}
 .lg span{display:inline-flex;gap:5px;align-items:center}
 .lg i{width:10px;height:10px;border-radius:2px;display:inline-block}
@@ -479,6 +485,31 @@ function findLine(v){
   if(v.kind==='bin')return `<b>${v.label}</b>: 회복군 ${fmt(v.rec*100)}%, 실패군 ${fmt(v.fail*100)}% (${v.rec>v.fail?'회복군에 더 많음':'실패군에 더 많음'})`;
   return `<b>${v.label}</b>: 회복군 ${fval(v.rec,v.unit)}, 실패군 ${fval(v.fail,v.unit)} (중앙값)`;
 }
+const rr=c=>c&&c.n?`${c.rec}/${c.n} <span class="lbl">(${Math.round(c.rec/c.n*100)}%)</span>`:'–';
+const rbar=c=>c&&c.n?`<div class="rb"><i style="width:${c.rec/c.n*100}%"></i></div>`:'';
+function comboHtml(K){
+  if(!K)return '';
+  const pv=p=>p<0.001?'<0.001':fmt(p,3);
+  const single=K.single.map(s=>`<tr><td class="lab">${s.label}</td>
+    <td>${rbar(s.a1)}${rr(s.a1)}</td><td>${rbar(s.a0)}${rr(s.a0)}</td><td class="r">${pv(s.pA)}</td><td>${strength(s.pA)}</td>
+    <td class="r">${rr(s.b1)}</td><td class="r">${rr(s.b0)}</td></tr>`).join('');
+  const combos=K.combos.map(c=>`<tr><td class="lab">${(c.shorts||c.labels).map(l=>`<span class="ctag">${l}</span>`).join('')}</td>
+    <td>${rbar(c.hit)}${rr(c.hit)}</td><td>${rr(c.rest)}</td><td class="r">${pv(c.p)}</td><td>${strength(c.p)}</td></tr>`).join('');
+  const mx=Math.max(...K.score.map(s=>s.n),1);
+  const score=K.score.filter(s=>s.n).map(s=>`<div class="col"><span class="nn">${Math.round(s.rec/s.n*100)}%</span><div class="stack" style="height:${Math.max(4,110*s.rec/s.n)}px"><i style="height:100%;background:var(--accent)"></i></div><span class="lb">${s.k}개</span><span class="lb">${s.rec}/${s.n}</span></div>`).join('');
+  return `<section class="panel"><h2>조건을 겹쳐 보면</h2>
+    <p class="note">기준 조건은 <b>${K.baseLabel}</b>입니다 (실패군 중앙값, 매일 다시 계산). 이 조건을 만족한 경고는 ${rr(K.base)}, 못 만족한 경고는 ${rr(K.notBase)}가 회복했습니다.</p>
+    <h3 class="sub3">조건별 비교</h3>
+    <div class="tbl"><table class="vt"><thead><tr><th rowspan="2">조건</th><th colspan="4">기준 조건 만족 (덜 하락)</th><th colspan="2">기준 조건 미달 (많이 하락)</th></tr>
+      <tr><th>조건 해당</th><th>해당 안 됨</th><th class="r">p</th><th>관계</th><th class="r">해당</th><th class="r">해당 안 됨</th></tr></thead><tbody>${single}</tbody></table></div>
+    <h3 class="sub3">기준 조건 + 여러 조건을 모두 만족할 때</h3>
+    <div class="tbl"><table class="vt"><thead><tr><th>함께 만족한 조건</th><th>회복</th><th>나머지 (덜 하락 중)</th><th class="r">p</th><th>관계</th></tr></thead><tbody>${combos}</tbody></table></div>
+    <h3 class="sub3">만족한 조건 개수별 회복률</h3>
+    <p class="note">기준 조건과 위 4개 조건, 모두 ${K.score.length-1}개 중 몇 개를 만족했는지로 나눴습니다.</p>
+    <div class="mbar" style="height:170px">${score}</div>
+    <p class="note" style="margin-top:12px">조합을 ${K.nTests}가지 시험했으므로 일부는 우연히 낮은 p가 나올 수 있습니다. 조합이 세분될수록 표본이 작아지니 회복/전체 건수를 함께 보세요.</p>
+  </section>`;
+}
 function renderFac(){
   if(!A){$('stats').innerHTML='';$('list').innerHTML='<div class="empty">분석 결과를 불러오는 중입니다.</div>';return}
   $('stats').innerHTML=statHtml([
@@ -517,6 +548,7 @@ function renderFac(){
   </div>
   <section class="panel"><h2>변수별 비교</h2><p class="note">관계가 강한 순서입니다. AUC는 그 변수 하나로 회복과 실패를 가르는 정도로, 0.5면 무관하고 1이나 0에 가까울수록 강합니다.</p>
     <div class="tbl"><table class="vt"><thead><tr><th>변수</th><th>회복군 vs 실패군</th><th class="r">AUC</th><th class="r">p</th><th>관계</th><th class="r">표본(회복/실패)</th></tr></thead><tbody>${rows}</tbody></table></div></section>
+  ${comboHtml(A.combos)}
   <section class="panel"><h2>섹터별 회복</h2><p class="note">3건 이상인 섹터만 표시합니다. 표본이 작아 우연일 수 있습니다.</p><div class="hb">${sec}</div></section>`;
 }
 

@@ -81,6 +81,48 @@ const DISC = {
   dCut: /감자|병합/, dBuyback: /자기주식.*취득|주식소각/, dContract: /공급계약|단일판매/, dMA: /합병|분할|타법인|양수/,
 };
 
+// 기준 조건(경고 전 하락이 실패군 중앙값보다 작음)과 다른 조건을 2×2, 조합별로 비교한다.
+// 기준선은 매번 그날의 실패군 중앙값으로 다시 잡는다.
+function comboAnalysis(eps) {
+  const E = eps.filter(e => e.pre25 != null);
+  const failMed = k => median(E.filter(e => !e.y && e[k] != null).map(e => e[k]));
+  const cutPre = failMed('pre25'), cutEx = failMed('excess'), cutTo = failMed('turnover');
+  if (cutPre == null) return null;
+  const base = e => e.pre25 > cutPre;
+  const pc = v => `${v > 0 ? '+' : ''}${(v * 100).toFixed(1)}%`;
+  const C = [
+    { key: 'major', short: '최대주주 변경', label: '최대주주·경영권 변경 공시', f: e => e.dMajor === 1 },
+    { key: 'third', short: '제3자배정 증자', label: '제3자배정 유상증자 공시', f: e => e.dThird === 1 },
+    { key: 'excess', short: `초과수익 > ${pc(cutEx)}`, label: `코스닥 대비 초과수익 ${pc(cutEx)}보다 덜 하락`, f: e => e.excess != null && e.excess > cutEx },
+    { key: 'turn', short: `거래대금 < ${cutTo.toFixed(1)}억`, label: `일평균 거래대금 ${cutTo.toFixed(1)}억 미만`, f: e => e.turnover != null && e.turnover < cutTo },
+  ];
+  const cnt = a => ({ n: a.length, rec: a.filter(e => e.y).length });
+  const test = (a, b) => { const x = a.filter(e => e.y).length, y = b.filter(e => e.y).length; return fisher(x, a.length - x, y, b.length - y); };
+  const EA = E.filter(base), EB = E.filter(e => !base(e));
+  const single = C.map(c => {
+    const a1 = EA.filter(c.f), a0 = EA.filter(e => !c.f(e)), b1 = EB.filter(c.f), b0 = EB.filter(e => !c.f(e));
+    return { key: c.key, label: c.label, a1: cnt(a1), a0: cnt(a0), b1: cnt(b1), b0: cnt(b0), pA: test(a1, a0), pB: test(b1, b0) };
+  });
+  const combos = [];
+  for (let m = 1; m < (1 << C.length); m++) {
+    const cs = C.filter((_, i) => (m >> i) & 1);
+    if (cs.length < 2) continue;
+    const s = EA.filter(e => cs.every(c => c.f(e))), rest = EA.filter(e => !cs.every(c => c.f(e)));
+    if (!s.length) continue;
+    combos.push({ keys: cs.map(c => c.key), labels: cs.map(c => c.label), shorts: cs.map(c => c.short), hit: cnt(s), rest: cnt(rest), p: test(s, rest) });
+  }
+  combos.sort((a, b) => a.p - b.p);
+  const score = [];
+  for (let k = 0; k <= C.length + 1; k++) {
+    const s = E.filter(e => C.filter(c => c.f(e)).length + (base(e) ? 1 : 0) === k);
+    score.push({ k, ...cnt(s) });
+  }
+  return {
+    baseLabel: `경고 전 25거래일 주가가 ${pc(cutPre)}보다 덜 떨어짐`, cutPre, cutEx, cutTo,
+    all: cnt(E), base: cnt(EA), notBase: cnt(EB), single, combos, score, nTests: single.length + combos.length,
+  };
+}
+
 /**
  * @param {object} p
  * @param {string} p.root
@@ -195,12 +237,17 @@ export async function buildAnalysis({ root, lists, details }) {
   for (const e of eps) (sec[e.sector || '기타'] ||= []).push(e);
   const sectors = Object.entries(sec).map(([b, a]) => ({ b, n: a.length, rec: a.filter(e => e.y).length })).sort((a, b) => b.n - a.n);
 
+  const combos = comboAnalysis(eps);
+
   return {
     asOf: new Date().toISOString(),
+    combos,
     n: eps.length, nRec: eps.filter(e => e.y).length, nFail: eps.filter(e => !e.y).length,
     pending, noData, uniq: new Set(eps.map(e => e.code)).size,
     first: eps.reduce((m, e) => (e.d < m ? e.d : m), T), last: eps.reduce((m, e) => (e.d > m ? e.d : m), '0'),
     discCovered: eps.filter(e => e.titles).length,
     vars, byMonth, market, sectors,
+    // 경고 건별 값 (추가 분석용)
+    eps: eps.map(e => { const o = { nm: e.nm, code: e.code, d: e.d, y: e.y, sector: e.sector }; for (const [k] of VARS) o[k] = e[k] ?? null; return o; }),
   };
 }
