@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildHistory } from './history.mjs';
 import { buildAnalysis } from './analysis.mjs';
+import { buildSignals } from './signals.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const API = 'https://m.stock.naver.com/api';
@@ -155,6 +156,17 @@ async function main() {
   } catch (e) {
     console.error('analysis 실패, 스냅샷 사용:', e.message);
     if (fs.existsSync(anSnap)) fs.copyFileSync(anSnap, anOut);
+  }
+
+  // 현재 후보 종목의 회복 신호 점수
+  const sigOut = path.join(ROOT, 'public', 'signals.json');
+  try {
+    const an = JSON.parse(fs.readFileSync(anOut, 'utf8'));
+    const sig = await buildSignals({ rows: rows.map(r => ({ c: r.c, n: r.n, m: r.m })), combos: an.combos });
+    fs.writeFileSync(sigOut, JSON.stringify(sig));
+    console.log('회복 신호', Object.keys(sig.s).length, '종목, 공시', sig.discOk ? '확인' : '실패');
+  } catch (e) {
+    console.error('signals 실패:', e.message);
   }
 }
 

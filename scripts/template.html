@@ -132,6 +132,14 @@ table.vt{min-width:560px}
 .mbar .lb{font-size:11px;color:var(--muted);font-family:var(--f-num)}
 .mbar .nn{font-size:11px;font-family:var(--f-num)}
 .sub3{font-size:14px;margin:16px 0 6px}
+.sig{display:flex;align-items:center;gap:6px;cursor:help}
+.sig b{font-family:var(--f-num);font-size:13px;min-width:1.4em;text-align:center;border-radius:4px;padding:1px 4px;background:var(--bg);border:1px solid var(--line)}
+.sig b.hi{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.sig b.mid{background:var(--accent-soft);border-color:var(--accent-soft);color:var(--accent)}
+.sig .dots{display:inline-flex;gap:2px}
+.sig .dots i{width:6px;height:6px;border-radius:50%;background:var(--bar)}
+.sig .dots i.on{background:var(--accent)}
+.sig .star{color:var(--warn);font-size:13px}
 .ctag{display:inline-block;font-size:12px;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:1px 8px;margin:2px 4px 2px 0}
 .rb{width:70px;height:6px;border-radius:3px;background:var(--bar);overflow:hidden;margin-bottom:3px}
 .rb i{display:block;height:100%;background:var(--accent)}
@@ -209,6 +217,7 @@ table.vt{min-width:560px}
       <span class="only-now">
       <select id="sort" aria-label="정렬">
         <option value="gap">기준까지 필요한 상승률 큰 순</option>
+        <option value="sig">회복 신호 높은 순</option>
         <option value="mc">시총 작은 순</option>
         <option value="rv">매출 큰 순</option>
         <option value="ps">시총/매출(PSR) 낮은 순</option>
@@ -243,6 +252,7 @@ table.vt{min-width:560px}
       <li>시총 기준은 2026년 7월부터 코스피 300억, 코스닥 200억이고, 2027년 1월부터 코스피 500억, 코스닥 300억입니다. 매출 기준은 2027년부터 단계적으로 오릅니다.</li>
       <li>매출액은 가장 최근 확정 연간 실적(대부분 연결 기준)입니다. 거래소 규정상 매출액과 세부 기준이 달라 실제 판정과 다를 수 있습니다.</li>
       <li>실제 규정은 시총 미달이 <b>30거래일 연속</b>일 때 관리종목으로 지정하고, 지정 후 90거래일 동안 기준 이상인 상태가 45거래일 이어지지 못하면 상장폐지합니다. 이 표는 하루치 시총만 비교합니다.</li>
+      <li><b>회복 신호</b>: '회복 요인' 탭에서 회복과 뚜렷하게 연관된 조건 5개(최근 25거래일 주가·지수 대비 초과수익·거래대금, 최근 60일 제3자배정 증자·최대주주 변경 공시) 중 몇 개를 만족하는지입니다. 기준선은 과거 실패군 중앙값이고 매일 다시 계산합니다. 점에 마우스를 올리면 조건별 결과와 과거 같은 점수의 회복률이 나옵니다. ★는 과거 회복률이 가장 높았던 조합입니다. 기준은 코스닥 경고 사례로 만든 것이라 코스피는 참고용입니다.</li>
       <li>"현행 미달"은 지금 시행 중인 기준에도 시총이 못 미친다는 뜻입니다. 우선주, ETF, 펀드형 종목은 뺐습니다.</li>
       <li>투자 판단 자료가 아니라 기준 대비 위치를 훑어보는 용도입니다.</li>
     </ul>
@@ -309,6 +319,17 @@ function chips(list,key){
 function searchFilter(list){const q=S.q.trim().toLowerCase();return q?list.filter(r=>(r.n+r.c+r.sec+r.b).toLowerCase().includes(q)):list}
 
 /* ---------- 현재 시총 미달 ---------- */
+let SG=null;
+const SIGL=()=>SG?[`최근 25거래일 주가가 ${pctf(SG.cuts.pre)}보다 덜 하락`,`지수 대비 초과수익이 ${pctf(SG.cuts.ex)}보다 덜 하락`,`일평균 거래대금 ${fmt(SG.cuts.to,1)}억 미만`,'최근 60일 제3자배정 유상증자 공시','최근 60일 최대주주·경영권 변경 공시']:[];
+function sigHtml(r){
+  const s=r.sig;if(!s)return '<span class="lbl">–</span>';
+  const L=SIGL();const h=SG.hist.find(x=>x.k===s.score);
+  const NL=String.fromCharCode(10);
+  const tip=L.map((l,i)=>(s.ok[i]?'✓ ':'✗ ')+l+(i===3&&s.third?' ('+s.third.slice(5)+')':'')+(i===4&&s.major?' ('+s.major.slice(5,10)+')':'')).join(NL)
+    +(h&&h.n?NL+NL+`과거 같은 점수 회복률 ${Math.round(h.rec/h.n*100)}% (${h.rec}/${h.n})`:'')
+    +(s.star?NL+'★ 과거 회복률이 가장 높았던 조합':'');
+  return `<span class="sig" title="${esc(tip)}"><b class="${s.score>=4?'hi':s.score===3?'mid':''}">${s.score}</b><span class="dots">${s.ok.map(o=>`<i class="${o?'on':''}"></i>`).join('')}</span>${s.star?'<span class="star">★</span>':''}</span>`;
+}
 function rowHtml(r){const st=STAGES[S.st],lim=st.mc[r.m],cur=STAGES[CUR].mc[r.m];
   const ratio=r.mc/lim,need=(lim/r.mc-1)*100,crit=r.mc<cur;
   const op=r.op[r.op.length-1],ni=r.ni[r.ni.length-1];
@@ -320,6 +341,7 @@ function rowHtml(r){const st=STAGES[S.st],lim=st.mc[r.m],cur=STAGES[CUR].mc[r.m]
   <td class="r ${r.ch>0?'up':r.ch<0?'down':''}">${r.ch>0?'+':''}${fmt(r.ch,2)}%</td>
   <td class="r">${fmt(r.mc,1)}억</td>
   <td><div class="gauge"><span class="g" title="기준 ${lim}억 대비 ${fmt(ratio*100)}%"><i class="${crit?'crit':''}" style="width:${Math.min(100,ratio*100)}%"></i></span><span class="need">+${fmt(need)}%</span></div></td>
+  <td>${sigHtml(r)}</td>
   <td class="r">${eok(r.R)} <span class="lbl">${r.RY||''}</span></td>
   <td>${spark(r.rv)}</td>
   <td class="r ${op<0?'neg':''}">${eok(op)}</td>
@@ -329,9 +351,10 @@ function rowHtml(r){const st=STAGES[S.st],lim=st.mc[r.m],cur=STAGES[CUR].mc[r.m]
   <td class="r">${r.db==null?'–':fmt(r.db)+'%'}</td>
   <td>${pos==null?'–':`<span class="pos" title="52주 최저 ${fmt(r.lo)} · 최고 ${fmt(r.hi)}"><i style="left:calc(${pos*100}% - 1.5px)"></i></span>`}</td>
   </tr>`}
-const SORTS={gap:(a,b)=>a.mc-b.mc,mc:(a,b)=>a.mc-b.mc,rv:(a,b)=>b.R-a.R,ps:(a,b)=>(a.ps??1e9)-(b.ps??1e9),ch:(a,b)=>b.ch-a.ch,n:(a,b)=>a.n.localeCompare(b.n,'ko')};
+const SORTS={sig:(a,b)=>((b.sig?.score??-1)-(a.sig?.score??-1))||((b.sig?.star||0)-(a.sig?.star||0))||(b.mc-a.mc),gap:(a,b)=>a.mc-b.mc,mc:(a,b)=>a.mc-b.mc,rv:(a,b)=>b.R-a.R,ps:(a,b)=>(a.ps??1e9)-(b.ps??1e9),ch:(a,b)=>b.ch-a.ch,n:(a,b)=>a.n.localeCompare(b.n,'ko')};
 function renderNow(){
   const st=STAGES[S.st];
+  if(SG)rows.forEach(r=>r.sig=SG.s[r.c]);
   [0,1].forEach(m=>$('m'+m).querySelector('.cnt').textContent=base(m).length);
   STAGES.forEach((s,i)=>$('st'+i).setAttribute('aria-pressed',S.st===i));
   $('rule').innerHTML=`<span>시가총액 <b>${st.mc[S.m]}억 원 미만</b></span><span>매출액 <b>${st.rv[S.m]}억 원 이상</b></span><span class="lbl">현행 기준: 시총 ${STAGES[CUR].mc[S.m]}억 · 매출 ${STAGES[CUR].rv[S.m]}억</span>`;
@@ -351,7 +374,7 @@ function renderNow(){
     return `<details class="sec" open><summary><h2>${b}</h2><span class="meta"><span class="mono">${g.length}</span>개 종목 · 세부업종 ${subs.length}개 · 시총 합계 <span class="mono">${fmt(sm)}</span>억</span><span class="caret">▶</span></summary>
     <div class="tbl"><table><thead><tr>
       <th data-k="n">종목</th><th class="r">현재가</th><th class="r" data-k="ch">등락률</th><th class="r" data-k="mc">시가총액</th>
-      <th class="r" data-k="gap">기준 대비 · 필요 상승률</th><th class="r" data-k="rv">최근 매출</th><th>매출 3년</th>
+      <th class="r" data-k="gap">기준 대비 · 필요 상승률</th><th data-k="sig" title="회복 요인 탭에서 뚜렷했던 조건 5개 중 몇 개를 만족하는지">회복 신호</th><th class="r" data-k="rv">최근 매출</th><th>매출 3년</th>
       <th class="r">영업이익</th><th class="r">순이익</th><th class="r" data-k="ps">PSR</th><th class="r">PBR</th><th class="r">부채비율</th><th>52주 위치</th>
     </tr></thead><tbody>${g.map(rowHtml).join('')}</tbody></table></div></details>`}).join('');
   document.querySelectorAll(`th[data-k="${S.sort}"]`).forEach(th=>th.insertAdjacentHTML('beforeend','<span class="ar">▼</span>'));
@@ -582,6 +605,7 @@ fetch('history.json').then(r=>r.ok?r.json():Promise.reject(r.status)).then(j=>{
   document.querySelectorAll('.hasof').forEach(e=>e.textContent='('+kdate(j.asOf)+' 갱신)');
   render();
 }).catch(()=>{if(VIEW==='rec')$('list').innerHTML='<div class="empty">회복 사례 데이터를 불러오지 못했습니다. 잠시 후 새로고침해 보세요.</div>'});
+fetch('signals.json').then(r=>r.ok?r.json():Promise.reject(r.status)).then(j=>{SG=j;if(VIEW==='now')render()}).catch(()=>{});
 fetch('analysis.json').then(r=>r.ok?r.json():Promise.reject(r.status)).then(j=>{
   A=j;document.querySelectorAll('.aasof').forEach(e=>e.textContent='('+kdate(j.asOf)+' 갱신)');
   if(VIEW==='fac')render();
