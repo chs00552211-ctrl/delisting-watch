@@ -361,12 +361,12 @@ function rowHtml(r){const st=STAGES[S.st],lim=st.mc[r.m],cur=STAGES[CUR].mc[r.m]
   const tags=(crit?'<span class="pill crit">현행 미달</span>':'')+(r.st?'<span class="pill warn">거래정지</span>':'')+(r.loss3?'<span class="pill mute">3년 영업적자</span>':'')+(r.sp?'<span class="pill mute">스팩</span>':'');
   return `<tr>
   <td class="nm"><a href="https://finance.naver.com/item/main.naver?code=${r.c}" target="_blank" rel="noopener">${esc(r.n)}</a>${tags}<span class="sub"><span class="mono">${r.c}</span> · ${esc(r.sec)}</span></td>
+  <td>${dlHtml(r)}</td>
+  <td>${sigHtml(r)}</td>
   <td class="r">${fmt(r.p)}</td>
   <td class="r ${r.ch>0?'up':r.ch<0?'down':''}">${r.ch>0?'+':''}${fmt(r.ch,2)}%</td>
   <td class="r">${fmt(r.mc,1)}억</td>
   <td><div class="gauge"><span class="g" title="기준 ${lim}억 대비 ${fmt(ratio*100)}%"><i class="${crit?'crit':''}" style="width:${Math.min(100,ratio*100)}%"></i></span><span class="need">+${fmt(need)}%</span></div></td>
-  <td>${dlHtml(r)}</td>
-  <td>${sigHtml(r)}</td>
   <td class="r">${eok(r.R)} <span class="lbl">${r.RY||''}</span></td>
   <td>${spark(r.rv)}</td>
   <td class="r ${op<0?'neg':''}">${eok(op)}</td>
@@ -399,8 +399,8 @@ function renderNow(){
     const subs=[...new Set(g.map(r=>r.sec))];const sm=g.reduce((a,r)=>a+r.mc,0);
     return `<details class="sec" open><summary><h2>${b}</h2><span class="meta"><span class="mono">${g.length}</span>개 종목 · 세부업종 ${subs.length}개 · 시총 합계 <span class="mono">${fmt(sm)}</span>억</span><span class="caret">▶</span></summary>
     <div class="tbl"><table><thead><tr>
-      <th data-k="n">종목</th><th class="r">현재가</th><th class="r" data-k="ch">등락률</th><th class="r" data-k="mc">시가총액</th>
-      <th class="r" data-k="gap">기준 대비 · 필요 상승률</th><th data-k="dl" title="관리종목 지정 또는 해제 기한까지 남은 거래일">남은 기간</th><th data-k="sig" title="회복 요인 탭에서 뚜렷했던 조건 5개 중 몇 개를 만족하는지">회복 신호</th><th class="r" data-k="rv">최근 매출</th><th>매출 3년</th>
+      <th data-k="n">종목</th><th data-k="dl" title="관리종목 지정 또는 해제 기한까지 남은 거래일">남은 기간</th><th data-k="sig" title="회복 요인 탭에서 뚜렷했던 조건 5개 중 몇 개를 만족하는지">회복 신호</th><th class="r">현재가</th><th class="r" data-k="ch">등락률</th><th class="r" data-k="mc">시가총액</th>
+      <th class="r" data-k="gap">기준 대비 · 필요 상승률</th><th class="r" data-k="rv">최근 매출</th><th>매출 3년</th>
       <th class="r">영업이익</th><th class="r">순이익</th><th class="r" data-k="ps">PSR</th><th class="r">PBR</th><th class="r">부채비율</th><th>52주 위치</th>
     </tr></thead><tbody>${g.map(rowHtml).join('')}</tbody></table></div></details>`}).join('');
   document.querySelectorAll(`th[data-k="${S.sort}"]`).forEach(th=>th.insertAdjacentHTML('beforeend','<span class="ar">▼</span>'));
