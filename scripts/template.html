@@ -98,9 +98,40 @@ footer ul{margin:6px 0 0;padding-left:18px}
 .views a{font-size:15px;font-weight:600;color:var(--muted);text-decoration:none;padding:9px 14px;border-bottom:2px solid transparent;margin-bottom:-1px}
 .views a[aria-current="page"]{color:var(--accent);border-bottom-color:var(--accent)}
 .views a .cnt{font-family:var(--f-num);font-size:12px;font-weight:400;margin-left:5px}
-.only-now,.only-rec{display:contents}
-body[data-view="rec"] .only-now{display:none}
-body[data-view="now"] .only-rec{display:none}
+.only-now,.only-rec,.only-fac{display:contents}
+body:not([data-view="now"]) .only-now{display:none}
+body:not([data-view="rec"]) .only-rec{display:none}
+body:not([data-view="fac"]) .only-fac{display:none}
+body[data-view="fac"] .deck{display:none}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;min-width:0}
+.panel h2{font-size:16px;margin:0 0 4px}
+.panel .note{margin-bottom:12px}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+@media (max-width:860px){.two{grid-template-columns:minmax(0,1fr)}}
+.find{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:14px;max-width:80ch}
+.find b{font-weight:600}
+.hb{display:grid;grid-template-columns:minmax(0,11em) minmax(0,1fr) 4.5em;gap:6px 10px;align-items:center;font-size:13px}
+.hb .bar{height:12px;border-radius:3px;background:var(--bar);overflow:hidden}
+.hb .bar i{display:block;height:100%;background:var(--accent)}
+.hb .v{font-family:var(--f-num);text-align:right}
+.vt td,.vt th{white-space:normal}
+.vt td.lab{min-width:13em}
+.vt .grp{font-size:11px;color:var(--muted)}
+.duo{display:flex;flex-direction:column;gap:3px;min-width:120px}
+.duo span{display:flex;align-items:center;gap:6px;font-family:var(--f-num);font-size:12px}
+.duo i{display:inline-block;height:8px;border-radius:2px}
+.duo .r i{background:var(--accent)}.duo .f i{background:var(--crit)}
+.pill.sig{background:var(--accent-soft);color:var(--accent)}
+.pill.weak{background:var(--warn-soft);color:var(--warn)}
+.mbar{display:flex;align-items:flex-end;gap:10px;height:150px;padding-top:6px}
+.mbar .col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0}
+.mbar .stack{width:100%;max-width:46px;display:flex;flex-direction:column-reverse;border-radius:3px 3px 0 0;overflow:hidden}
+.mbar .stack i{display:block;width:100%}
+.mbar .lb{font-size:11px;color:var(--muted);font-family:var(--f-num)}
+.mbar .nn{font-size:11px;font-family:var(--f-num)}
+.lg{display:flex;gap:14px;font-size:12px;color:var(--muted);margin-top:8px}
+.lg span{display:inline-flex;gap:5px;align-items:center}
+.lg i{width:10px;height:10px;border-radius:2px;display:inline-block}
 .cards{display:flex;flex-direction:column}
 .card{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:14px 20px;padding:16px;border-top:1px solid var(--line)}
 .card:first-child{border-top:0}
@@ -141,10 +172,12 @@ body[data-view="now"] .only-rec{display:none}
 <header class="top wrap">
   <h1>시총 미달 종목판</h1>
   <p class="lede only-now">상장폐지 <b>매출액 기준은 넘지만 시가총액 기준에는 못 미치는</b> 코스피·코스닥 종목을 섹터별로 모았습니다. 기준 적용 시점을 바꾸면 그때의 기준으로 다시 걸러집니다. 평일 장 마감 후 매일 자동 갱신됩니다. <span class="mono asof"></span></p>
+  <p class="lede only-fac">시총 미달 경고를 받은 종목 중 <b>어떤 종목이 관리종목 지정을 피했는지</b>, 재무·주가·수급·시장·공시 변수와의 관계를 매일 다시 계산합니다. 새 경고와 결과가 쌓일수록 표본이 커집니다. <span class="mono aasof"></span></p>
   <p class="lede only-rec">2024년 이후 <b>매출액 기준은 넘었지만 시가총액이 기준 아래로 떨어졌다가, 상장폐지 없이 다시 올라온</b> 종목입니다. 그때의 주가 흐름과 회복 무렵 나온 주요 공시를 함께 보여줍니다. <span class="mono hasof"></span></p>
   <nav class="views" aria-label="보기">
     <a href="#now" data-view="now">현재 시총 미달<span class="cnt" id="vc-now"></span></a>
     <a href="#recovered" data-view="rec">회복 사례<span class="cnt" id="vc-rec"></span></a>
+    <a href="#factors" data-view="fac">회복 요인</a>
   </nav>
 </header>
 
@@ -215,6 +248,14 @@ body[data-view="now"] .only-rec{display:none}
       <li>당시 매출은 사례 첫 시점 직전 회계연도 매출이며, 그때 매출 기준(코스피 50억, 코스닥 30억) 이상인 종목만 넣었습니다.</li>
       <li>차트의 빨간 점선은 시총 기준을 현재 주식수로 나눠 주가로 환산한 선, 붉은 구간은 기준 미달 구간입니다 (공식 사례는 공시 날짜로 계산).</li>
     </ul>
+    <ul class="only-fac">
+      <li><b>표본</b>: KIND "관리종목 지정우려(시가총액 미달)" 경고. 경고 후 14일 안에 관리종목으로 지정되면 실패, 아니면 회복으로 봅니다. 아직 14일이 안 지난 경고는 결과가 나올 때까지 뺍니다.</li>
+      <li>지금은 코스닥만 해당합니다. 코스피는 시총 경고 공시가 없습니다. 상장폐지돼 시세·재무 데이터가 없는 종목도 빠져서, 실패군이 실제보다 덜 나빠 보일 수 있습니다.</li>
+      <li><b>공시</b>는 지정 여부가 정해지기 전(경고 60일 전 ~ 7일 후)에 나온 것만 제목으로 분류합니다. 실제 납입·이행 여부는 확인하지 않습니다.</li>
+      <li><b>재무</b>는 경고 직전 연도 연간 실적(네이버 증권, 대부분 연결 기준)입니다.</li>
+      <li><b>통계</b>: 숫자 변수는 두 그룹 중앙값과 순위 검정(Mann-Whitney), 예/아니오 변수는 비율과 Fisher 정확검정입니다. p가 0.05보다 작으면 "뚜렷함", 0.1보다 작으면 "약함"으로 표시합니다. 같은 종목이 여러 번 경고받은 경우도 각각 셉니다.</li>
+      <li>상관관계일 뿐 인과관계가 아니며, 투자 판단 자료가 아닙니다.</li>
+    </ul>
   </footer>
 </div>
 
@@ -231,7 +272,8 @@ const CUR=1;
 const ORDER=['IT·반도체','자동차·운송','소비재','헬스케어','소재','산업재','미디어·통신','금융·부동산','에너지·유틸리티','기타'];
 const S={m:0,st:CUR,q:'',sort:'gap',xsp:true,xst:false,sec:'전체',k2:'all',hsort:'rec',xdes:false};
 try{Object.assign(S,JSON.parse(localStorage.getItem('dl-state-v2')||'{}'))}catch(e){}
-let VIEW=location.hash==='#recovered'?'rec':'now';
+const viewOf=()=>location.hash==='#recovered'?'rec':location.hash==='#factors'?'fac':'now';
+let VIEW=viewOf();
 let H=null;
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -428,6 +470,56 @@ function renderRec(){
   document.querySelectorAll('.chartbox').forEach(bx=>hoverChart(bx,shownCases[+bx.dataset.i]));
 }
 
+/* ---------- 회복 요인 ---------- */
+let A=null;
+const pctf=(v,d=1)=>v==null?'–':(v>0?'+':'')+fmt(v*100,d)+'%';
+function fval(v,unit){if(v==null)return '–';if(unit==='pct')return pctf(v);if(unit==='eok')return fmt(v,v<10?1:0)+'억';if(unit==='won')return fmt(v)+'원';if(unit==='pp')return fmt(v,1)+(Math.abs(v)>=1000?'':'%');return fmt(v,2)}
+const strength=p=>p<0.05?'<span class="pill sig">뚜렷함</span>':p<0.1?'<span class="pill weak">약함</span>':'<span class="pill mute">차이 없음</span>';
+function findLine(v){
+  if(v.kind==='bin')return `<b>${v.label}</b>: 회복군 ${fmt(v.rec*100)}%, 실패군 ${fmt(v.fail*100)}% (${v.rec>v.fail?'회복군에 더 많음':'실패군에 더 많음'})`;
+  return `<b>${v.label}</b>: 회복군 ${fval(v.rec,v.unit)}, 실패군 ${fval(v.fail,v.unit)} (중앙값)`;
+}
+function renderFac(){
+  if(!A){$('stats').innerHTML='';$('list').innerHTML='<div class="empty">분석 결과를 불러오는 중입니다.</div>';return}
+  $('stats').innerHTML=statHtml([
+    ['분석한 경고',fmt(A.n)+'건'],
+    ['회복 · 실패',`${A.nRec} · ${A.nFail}`],
+    ['전체 회복률',fmt(A.nRec/A.n*100)+'%'],
+    ['경고 기간',`${A.first.slice(2,7).replace('-','.')}~${A.last.slice(2,7).replace('-','.')}`],
+    ['결과 대기 중',fmt(A.pending)+'건'],
+  ]);
+  const sig=A.vars.filter(v=>v.p<0.05),weak=A.vars.filter(v=>v.p>=0.05&&v.p<0.1),none=A.vars.filter(v=>v.p>=0.1);
+  const fin=none.filter(v=>v.group==='재무').map(v=>v.label.replace('직전 연도 ',''));
+  const mk=A.market.filter(b=>b.n);
+  const mx=Math.max(...A.byMonth.map(m=>m.n),1);
+  const months=A.byMonth.map(m=>{const h=120*m.n/mx;return `<div class="col"><span class="nn">${m.rec}/${m.n}</span><div class="stack" style="height:${h}px"><i style="height:${m.rec/m.n*100}%;background:var(--accent)"></i><i style="height:${(m.n-m.rec)/m.n*100}%;background:var(--crit)"></i></div><span class="lb">${m.m.slice(2).replace('-','.')}</span></div>`}).join('');
+  const rows=A.vars.map(v=>{
+    let duo;
+    if(v.kind==='bin'){duo=`<div class="duo"><span class="r"><i style="width:${v.rec*80}px"></i>${fmt(v.rec*100)}%</span><span class="f"><i style="width:${v.fail*80}px"></i>${fmt(v.fail*100)}%</span></div>`}
+    else duo=`<div class="duo"><span class="r">회복 ${fval(v.rec,v.unit)}</span><span class="f">실패 ${fval(v.fail,v.unit)}</span></div>`;
+    return `<tr><td class="lab">${v.label}<div class="grp">${v.group}</div></td><td>${duo}</td><td class="r">${v.auc==null?'–':fmt(v.auc,2)}</td><td class="r">${v.p<0.001?'<0.001':fmt(v.p,3)}</td><td>${strength(v.p)}</td><td class="r">${v.nRec}/${v.nFail}</td></tr>`}).join('');
+  const sec=A.sectors.filter(s=>s.n>=3).map(s=>`<div>${s.b}</div><div class="bar"><i style="width:${s.rec/s.n*100}%"></i></div><div class="v">${s.rec}/${s.n}</div>`).join('');
+  $('list').innerHTML=`
+  <section class="panel">
+    <h2>지금까지의 결과</h2>
+    <p class="note">${A.n}건 기준입니다. 표본이 커지면 아래 내용도 바뀝니다.</p>
+    <ul class="find">
+      ${sig.length?sig.map(v=>`<li>${findLine(v)}</li>`).join(''):'<li>아직 통계적으로 뚜렷한 차이를 보인 변수가 없습니다.</li>'}
+      ${weak.map(v=>`<li class="note">약한 신호 · ${findLine(v)}</li>`).join('')}
+      ${fin.length?`<li>재무 변수 중 <b>${fin.join(', ')}</b>는 회복 여부와 뚜렷한 관계가 없었습니다.</li>`:''}
+    </ul>
+  </section>
+  <div class="two">
+    <section class="panel"><h2>시장 상황별 회복률</h2><p class="note">경고 전 25거래일 동안 코스닥 지수가 어떻게 움직였는지에 따라 나눴습니다.</p>
+      <div class="hb">${mk.map(b=>`<div>${b.label}</div><div class="bar"><i style="width:${(b.rate||0)*100}%"></i></div><div class="v">${fmt((b.rate||0)*100)}% <span class="lbl">n=${b.n}</span></div>`).join('')}</div></section>
+    <section class="panel"><h2>월별 경고와 결과</h2><p class="note">막대 위 숫자는 회복/전체입니다.</p>
+      <div class="mbar">${months}</div><div class="lg"><span><i style="background:var(--accent)"></i>회복</span><span><i style="background:var(--crit)"></i>관리종목 지정</span></div></section>
+  </div>
+  <section class="panel"><h2>변수별 비교</h2><p class="note">관계가 강한 순서입니다. AUC는 그 변수 하나로 회복과 실패를 가르는 정도로, 0.5면 무관하고 1이나 0에 가까울수록 강합니다.</p>
+    <div class="tbl"><table class="vt"><thead><tr><th>변수</th><th>회복군 vs 실패군</th><th class="r">AUC</th><th class="r">p</th><th>관계</th><th class="r">표본(회복/실패)</th></tr></thead><tbody>${rows}</tbody></table></div></section>
+  <section class="panel"><h2>섹터별 회복</h2><p class="note">3건 이상인 섹터만 표시합니다. 표본이 작아 우연일 수 있습니다.</p><div class="hb">${sec}</div></section>`;
+}
+
 function render(){
   document.body.dataset.view=VIEW;
   document.querySelectorAll('.views a').forEach(a=>{if(a.dataset.view===VIEW)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});
@@ -435,7 +527,7 @@ function render(){
   $('q').value=S.q;$('sort').value=S.sort;$('xsp').checked=S.xsp;$('xst').checked=S.xst;$('hsort').value=S.hsort;$('xdes').checked=S.xdes;
   $('vc-now').textContent=base(0).length+base(1).length;
   if(H)$('vc-rec').textContent=H.cases.length;
-  VIEW==='rec'?renderRec():renderNow();
+  VIEW==='rec'?renderRec():VIEW==='fac'?renderFac():renderNow();
   save();
 }
 document.addEventListener('click',e=>{
@@ -445,7 +537,7 @@ document.addEventListener('click',e=>{
   const c=e.target.closest('.chip');if(c){S.sec=c.dataset.b;render();return}
   const t=e.target.closest('th[data-k]');if(t){S.sort=t.dataset.k;render()}
 });
-window.addEventListener('hashchange',()=>{VIEW=location.hash==='#recovered'?'rec':'now';S.sec='전체';render();window.scrollTo(0,0)});
+window.addEventListener('hashchange',()=>{VIEW=viewOf();S.sec='전체';render();window.scrollTo(0,0)});
 $('q').addEventListener('input',e=>{S.q=e.target.value;render()});
 $('sort').addEventListener('change',e=>{S.sort=e.target.value;render()});
 $('hsort').addEventListener('change',e=>{S.hsort=e.target.value;render()});
@@ -458,6 +550,10 @@ fetch('history.json').then(r=>r.ok?r.json():Promise.reject(r.status)).then(j=>{
   document.querySelectorAll('.hasof').forEach(e=>e.textContent='('+kdate(j.asOf)+' 갱신)');
   render();
 }).catch(()=>{if(VIEW==='rec')$('list').innerHTML='<div class="empty">회복 사례 데이터를 불러오지 못했습니다. 잠시 후 새로고침해 보세요.</div>'});
+fetch('analysis.json').then(r=>r.ok?r.json():Promise.reject(r.status)).then(j=>{
+  A=j;document.querySelectorAll('.aasof').forEach(e=>e.textContent='('+kdate(j.asOf)+' 갱신)');
+  if(VIEW==='fac')render();
+}).catch(()=>{if(VIEW==='fac')$('list').innerHTML='<div class="empty">분석 결과를 불러오지 못했습니다. 잠시 후 새로고침해 보세요.</div>'});
 </script>
 </body>
 </html>

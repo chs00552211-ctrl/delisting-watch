@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildHistory } from './history.mjs';
+import { buildAnalysis } from './analysis.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const API = 'https://m.stock.naver.com/api';
@@ -140,6 +141,20 @@ async function main() {
   } catch (e) {
     console.error('history 수집 실패, 스냅샷 사용:', e.message);
     if (fs.existsSync(histSnap)) fs.copyFileSync(histSnap, histOut);
+  }
+
+  // 회복 요인 분석. 실패하면 스냅샷을 쓴다.
+  const anOut = path.join(ROOT, 'public', 'analysis.json');
+  const anSnap = path.join(ROOT, 'data', 'analysis.json');
+  try {
+    const an = await buildAnalysis({ root: ROOT, lists, details });
+    if (an.n < 20) throw new Error('분석 표본이 너무 적음: ' + an.n);
+    const json = JSON.stringify(an);
+    fs.writeFileSync(anOut, json);
+    fs.writeFileSync(anSnap, json);
+  } catch (e) {
+    console.error('analysis 실패, 스냅샷 사용:', e.message);
+    if (fs.existsSync(anSnap)) fs.copyFileSync(anSnap, anOut);
   }
 }
 

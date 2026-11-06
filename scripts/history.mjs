@@ -320,3 +320,12 @@ export async function buildHistory({ root, lists, details }) {
   console.log('최종 사례', result.length, '관련공시 새로 받음', relFetched, kindBlocked ? '(KIND 차단됨)' : '');
   return { asOf: new Date().toISOString(), kindOk: cache.kindOk, cases: result };
 }
+
+// analysis.mjs 에서 같은 KIND 연결(속도 제한·시간 예산 공유)과 캐시를 쓰기 위해 내보낸다.
+export const kindApi = {
+  session: kindSession,
+  search: kindSearch,
+  blocked: () => kindBlocked,
+  hasSession: () => !!cookie,
+};
+export { loadCache, dailyChart, pool };
