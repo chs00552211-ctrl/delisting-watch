@@ -570,6 +570,7 @@ function renderFac(){
   ]);
   const sig=A.vars.filter(v=>v.p<0.05),weak=A.vars.filter(v=>v.p>=0.05&&v.p<0.1),none=A.vars.filter(v=>v.p>=0.1);
   const fin=none.filter(v=>v.group==='재무').map(v=>v.label.replace('직전 연도 ',''));
+  const gm=none.filter(v=>v.group==='주주총회');
   const mk=A.market.filter(b=>b.n);
   const mx=Math.max(...A.byMonth.map(m=>m.n),1);
   const months=A.byMonth.map(m=>{const h=120*m.n/mx;return `<div class="col"><span class="nn">${m.rec}/${m.n}</span><div class="stack" style="height:${h}px"><i style="height:${m.rec/m.n*100}%;background:var(--accent)"></i><i style="height:${(m.n-m.rec)/m.n*100}%;background:var(--crit)"></i></div><span class="lb">${m.m.slice(2).replace('-','.')}</span></div>`}).join('');
@@ -587,6 +588,7 @@ function renderFac(){
       ${sig.length?sig.map(v=>`<li>${findLine(v)}</li>`).join(''):'<li>아직 통계적으로 뚜렷한 차이를 보인 변수가 없습니다.</li>'}
       ${weak.map(v=>`<li class="note">약한 신호 · ${findLine(v)}</li>`).join('')}
       ${fin.length?`<li>재무 변수 중 <b>${fin.join(', ')}</b>는 회복 여부와 뚜렷한 관계가 없었습니다.</li>`:''}
+      ${gm.length?`<li>주주총회 공시(${gm.map(v=>`${v.label.replace(' 공시','')} 회복 ${fmt(v.rec*100)}% · 실패 ${fmt(v.fail*100)}%`).join(' / ')})도 회복 여부와 뚜렷한 관계가 없었습니다. 주총 자체보다 그 안건(증자·최대주주 변경)이 중요한 것으로 보입니다.</li>`:''}
     </ul>
   </section>
   <div class="two">
